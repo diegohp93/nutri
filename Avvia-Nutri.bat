@@ -2,17 +2,35 @@
 setlocal
 cd /d "%~dp0"
 
+where node >nul 2>nul
+if errorlevel 1 (
+  echo Errore: Node.js non e' installato.
+  echo Installa Node.js 22.13 o successivo da https://nodejs.org/
+  pause
+  exit /b 1
+)
+
+node -e "const [major, minor] = process.versions.node.split('.').map(Number); process.exit(major > 22 || (major === 22 && minor >= 13) ? 0 : 1)"
+if errorlevel 1 (
+  echo Errore: serve Node.js 22.13 o successivo. Versione installata:
+  node --version
+  pause
+  exit /b 1
+)
+
 if not exist "server\node_modules" (
   echo Installazione dipendenze backend...
   pushd server
-  call npm install
+  call npm ci
+  if errorlevel 1 exit /b 1
   popd
 )
 
 if not exist "client\node_modules" (
   echo Installazione dipendenze frontend...
   pushd client
-  call npm install
+  call npm ci
+  if errorlevel 1 exit /b 1
   popd
 )
 
