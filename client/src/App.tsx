@@ -81,6 +81,8 @@ export default function App() {
   }, [reloadGoals]);
 
   const totals = day?.totals;
+  // stile MyFitnessPal: le calorie bruciate con l'esercizio si aggiungono all'obiettivo giornaliero
+  const adjustedCalorieGoal = goals.calories > 0 ? goals.calories + (totals?.caloriesBurned ?? 0) : 0;
 
   return (
     <div className="app">
@@ -113,20 +115,20 @@ export default function App() {
         <section className="card totals-card">
           {goals.calories > 0 ? (
             <div className="totals-hero">
-              <div className={`totals-hero-value ${isOver(totals.calories, goals.calories) ? "over-goal" : ""}`}>
+              <div className={`totals-hero-value ${isOver(totals.calories, adjustedCalorieGoal) ? "over-goal" : ""}`}>
                 {Math.round(totals.calories)}
-                <span className="totals-hero-goal"> / {goals.calories}</span>
+                <span className="totals-hero-goal"> / {Math.round(adjustedCalorieGoal)}</span>
               </div>
               <div className="totals-hero-label">kcal assunte</div>
               <div className="progress-bar">
                 <div
-                  className={`progress-fill ${isOver(totals.calories, goals.calories) ? "over-goal" : ""}`}
-                  style={{ width: `${pct(totals.calories, goals.calories)}%` }}
+                  className={`progress-fill ${isOver(totals.calories, adjustedCalorieGoal) ? "over-goal" : ""}`}
+                  style={{ width: `${pct(totals.calories, adjustedCalorieGoal)}%` }}
                 />
               </div>
-              {isOver(totals.calories, goals.calories) && (
+              {isOver(totals.calories, adjustedCalorieGoal) && (
                 <span className="totals-hero-excess">
-                  +{Math.round(totals.calories - goals.calories)} kcal oltre l'obiettivo
+                  +{Math.round(totals.calories - adjustedCalorieGoal)} kcal oltre l'obiettivo
                 </span>
               )}
             </div>
