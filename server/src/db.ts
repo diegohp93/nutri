@@ -8,7 +8,11 @@ const dataDir = path.join(__dirname, "..", "data");
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
 export const db = new DatabaseSync(path.join(dataDir, "nutri.db"));
-db.exec("PRAGMA journal_mode = WAL;");
+// journal_mode DELETE (invece di WAL) tiene tutti i dati in un unico file .db:
+// con WAL i dati recenti restano per giorni nel file separato .db-wal non ancora
+// "unito" al .db principale, e OneDrive sincronizza i due file in modo indipendente
+// e non atomico -> rischio di vedere il db "vuoto" se .db arriva sincronizzato senza il suo .db-wal.
+db.exec("PRAGMA journal_mode = DELETE;");
 db.exec("PRAGMA foreign_keys = ON;");
 
 db.exec(`
