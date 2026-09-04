@@ -593,8 +593,18 @@ body {
 }
 
 .history-badge {
+  padding: 0;
+  border: 0;
+  background: none;
   color: var(--carbs);
   margin-right: 4px;
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+}
+
+.history-badge:hover {
+  color: var(--danger);
 }
 
 .result-kcal {

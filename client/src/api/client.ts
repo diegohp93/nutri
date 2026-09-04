@@ -35,6 +35,13 @@ export function searchFoodHistory(q: string): Promise<{ products: FoodProduct[] 
     return request(`/foods/history?q=${encodeURIComponent(q)}`);
 }
 
+export function removeFoodHistory(name: string, brand: string | null): Promise<void> {
+    return request(`/foods/history`, {
+        method: "DELETE",
+        body: JSON.stringify({ name, brand }),
+    });
+}
+
 export function getFoodByBarcode(code: string): Promise<{ product: FoodProduct }> {
     return request(`/foods/barcode/${encodeURIComponent(code)}`);
 }

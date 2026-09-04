@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Modal from "./Modal";
-import { searchFoods, searchFoodHistory, getFoodByBarcode } from "../api/client";
+import { searchFoods, searchFoodHistory, removeFoodHistory, getFoodByBarcode } from "../api/client";
 import { isBarcodeQuery, mergeFoodResults } from "../searchHelpers";
 import type { FoodProduct, IngredientInput } from "../types";
 
@@ -106,15 +106,25 @@ export default function AddIngredientModal({ onClose, onAdd }: Props) {
 
     function handleManualConfirm() {
         if (!manualName.trim() || manualKcal === "") return;
+        const portionFactor = 100 / manualQuantity;
         onAdd({
             name: manualName.trim(),
             quantityG: manualQuantity,
-            caloriesPer100g: Number(manualKcal) || 0,
-            proteinPer100g: Number(manualProtein) || 0,
-            carbsPer100g: Number(manualCarbs) || 0,
-            fatPer100g: Number(manualFat) || 0,
+            caloriesPer100g: (Number(manualKcal) || 0) * portionFactor,
+            proteinPer100g: (Number(manualProtein) || 0) * portionFactor,
+            carbsPer100g: (Number(manualCarbs) || 0) * portionFactor,
+            fatPer100g: (Number(manualFat) || 0) * portionFactor,
         });
         onClose();
+    }
+
+    async function handleRemoveHistory(p: FoodProduct) {
+        try {
+            await removeFoodHistory(p.name, p.brand);
+            setResults((current) => current.filter((item) => item !== p));
+        } catch (e) {
+            setError((e as Error).message);
+        }
     }
 
     if (manualMode) {
@@ -125,9 +135,9 @@ export default function AddIngredientModal({ onClose, onAdd }: Props) {
                     Nome*
                     <input type="text" autoFocus value={manualName} onChange={(e) => setManualName(e.target.value)} />
                 </label>
-                <p className="muted small">Valori nutrizionali per 100 g:</p>
+                <p className="muted small">Valori nutrizionali per 1 porzione:</p>
                 <label className="field">
-                    Calorie (kcal/100g)*
+                    Calorie (kcal/porzione)*
                     <input
                         type="number"
                         min={0}
@@ -136,7 +146,7 @@ export default function AddIngredientModal({ onClose, onAdd }: Props) {
                     />
                 </label>
                 <label className="field">
-                    Proteine (g/100g)
+                    Proteine (g/porzione)
                     <input
                         type="number"
                         min={0}
@@ -145,7 +155,7 @@ export default function AddIngredientModal({ onClose, onAdd }: Props) {
                     />
                 </label>
                 <label className="field">
-                    Carboidrati (g/100g)
+                    Carboidrati (g/porzione)
                     <input
                         type="number"
                         min={0}
@@ -154,7 +164,7 @@ export default function AddIngredientModal({ onClose, onAdd }: Props) {
                     />
                 </label>
                 <label className="field">
-                    Grassi (g/100g)
+                    Grassi (g/porzione)
                     <input
                         type="number"
                         min={0}
@@ -163,14 +173,14 @@ export default function AddIngredientModal({ onClose, onAdd }: Props) {
                     />
                 </label>
                 <label className="field">
-                    Quantità (g)
+                    Quantità di 1 porzione (g)
                     <input type="number" min={1} value={manualQuantity} onChange={(e) => setManualQuantity(Number(e.target.value))} />
                 </label>
                 <div className="macro-preview">
-                    <div><strong>{Math.round((Number(manualKcal) || 0) * factor)}</strong> kcal</div>
-                    <div>P: {Math.round((Number(manualProtein) || 0) * factor)} g</div>
-                    <div>C: {Math.round((Number(manualCarbs) || 0) * factor)} g</div>
-                    <div>G: {Math.round((Number(manualFat) || 0) * factor)} g</div>
+                    <div><strong>{Math.round(Number(manualKcal) || 0)}</strong> kcal</div>
+                    <div>P: {Math.round(Number(manualProtein) || 0)} g</div>
+                    <div>C: {Math.round(Number(manualCarbs) || 0)} g</div>
+                    <div>G: {Math.round(Number(manualFat) || 0)} g</div>
                 </div>
                 <div className="modal-actions">
                     <button className="btn secondary" onClick={() => setManualMode(false)}>Indietro</button>
@@ -256,7 +266,20 @@ export default function AddIngredientModal({ onClose, onAdd }: Props) {
                     <li key={`${p.code}-${i}`} className="result-item" onClick={() => handleSelect(p)}>
                         <div>
                             <div className="result-name">
-                                {p.source === "history" && <span className="history-badge" title="Già inserito da te">★</span>}
+                                {p.source === "history" && (
+                                    <button
+                                        type="button"
+                                        className="history-badge"
+                                        title="Rimuovi dalla cronologia"
+                                        aria-label={`Rimuovi ${p.name} dalla cronologia`}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            void handleRemoveHistory(p);
+                                        }}
+                                    >
+                                        ★
+                                    </button>
+                                )}
                                 {p.name}
                             </div>
                             {p.brand && <div className="muted small">{p.brand}</div>}

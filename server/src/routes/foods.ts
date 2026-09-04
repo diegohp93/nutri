@@ -60,7 +60,25 @@ router.get("/history", (req, res) => {
     if (q.length < 2) return res.json({ products: [] });
 
     const rows = db
-        .prepare("SELECT * FROM diary_entries WHERE name LIKE ? COLLATE NOCASE ORDER BY created_at DESC")
+        .prepare(`
+                        SELECT d.*,
+                            (
+                                SELECT first_entry.quantity_g
+                                FROM diary_entries AS first_entry
+                                WHERE first_entry.name = d.name COLLATE NOCASE
+                                    AND first_entry.brand IS d.brand
+                                ORDER BY first_entry.id
+                                LIMIT 1
+                            ) AS first_quantity_g
+                        FROM diary_entries AS d
+                        WHERE d.name LIKE ? COLLATE NOCASE
+                            AND NOT EXISTS (
+                                SELECT 1 FROM hidden_food_history AS h
+                                WHERE h.name = d.name COLLATE NOCASE
+                                    AND h.brand = COALESCE(d.brand, '') COLLATE NOCASE
+                            )
+                        ORDER BY d.created_at DESC
+                `)
         .all(`%${q}%`) as {
             name: string;
             brand: string | null;
@@ -70,6 +88,7 @@ router.get("/history", (req, res) => {
             protein: number;
             carbs: number;
             fat: number;
+            first_quantity_g: number | null;
         }[];
 
     const byKey = new Map<
@@ -90,7 +109,7 @@ router.get("/history", (req, res) => {
             brand: row.brand,
             quantity: null,
             servingSize: null,
-            servingQuantityG: null,
+            servingQuantityG: row.first_quantity_g && row.first_quantity_g > 0 ? row.first_quantity_g : null,
             caloriesPer100g: Math.round(row.calories * factor * 10) / 10,
             proteinPer100g: Math.round(row.protein * factor * 10) / 10,
             carbsPer100g: Math.round(row.carbs * factor * 10) / 10,
@@ -104,6 +123,15 @@ router.get("/history", (req, res) => {
         .sort((a, b) => b.usageCount - a.usageCount)
         .slice(0, 15);
     res.json({ products });
+});
+
+router.delete("/history", (req, res) => {
+    const name = String(req.body?.name ?? "").trim();
+    const brand = String(req.body?.brand ?? "").trim();
+    if (!name) return res.status(400).json({ error: "Nome alimento obbligatorio" });
+
+    db.prepare("INSERT OR IGNORE INTO hidden_food_history (name, brand) VALUES (?, ?)").run(name, brand);
+    res.status(204).end();
 });
 
 // Ricerca testuale prodotti su Open Food Facts.

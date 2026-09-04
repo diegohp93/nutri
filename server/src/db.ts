@@ -48,6 +48,12 @@ db.exec(`
     value TEXT NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS hidden_food_history (
+    name TEXT NOT NULL,
+    brand TEXT NOT NULL DEFAULT '',
+    PRIMARY KEY (name, brand)
+  );
+
   CREATE TABLE IF NOT EXISTS recipes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
