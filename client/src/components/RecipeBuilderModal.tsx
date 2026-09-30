@@ -1,18 +1,21 @@
 import { useState } from "react";
 import Modal from "./Modal";
 import AddIngredientModal from "./AddIngredientModal";
-import { createRecipe } from "../api/client";
-import type { IngredientInput } from "../types";
+import { createRecipe, updateRecipe } from "../api/client";
+import type { IngredientInput, RecipeDetail } from "../types";
 
 interface Props {
     onClose: () => void;
     onCreated: () => void;
+    recipe?: RecipeDetail;
 }
 
-export default function RecipeBuilderModal({ onClose, onCreated }: Props) {
-    const [name, setName] = useState("");
-    const [servings, setServings] = useState(1);
-    const [ingredients, setIngredients] = useState<IngredientInput[]>([]);
+export default function RecipeBuilderModal({ onClose, onCreated, recipe }: Props) {
+    const [name, setName] = useState(recipe?.name ?? "");
+    const [servings, setServings] = useState(recipe?.servings ?? 1);
+    const [ingredients, setIngredients] = useState<IngredientInput[]>(
+        recipe?.ingredients.map(({ id: _id, ...ingredient }) => ingredient) ?? []
+    );
     const [addingIngredient, setAddingIngredient] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -34,12 +37,20 @@ export default function RecipeBuilderModal({ onClose, onCreated }: Props) {
         setIngredients((prev) => prev.filter((_, i) => i !== index));
     }
 
+    function updateIngredientQuantity(index: number, quantityG: number) {
+        setIngredients((prev) => prev.map((ing, i) => (i === index ? { ...ing, quantityG } : ing)));
+    }
+
     async function handleSave() {
-        if (!name.trim() || ingredients.length === 0) return;
+        if (!name.trim() || ingredients.length === 0 || ingredients.some((ing) => ing.quantityG <= 0)) return;
         setSaving(true);
         setError(null);
         try {
-            await createRecipe({ name: name.trim(), servings, ingredients });
+            if (recipe) {
+                await updateRecipe(recipe.id, { name: name.trim(), servings, ingredients });
+            } else {
+                await createRecipe({ name: name.trim(), servings, ingredients });
+            }
             onCreated();
             onClose();
         } catch (e) {
@@ -50,7 +61,7 @@ export default function RecipeBuilderModal({ onClose, onCreated }: Props) {
     }
 
     return (
-        <Modal title="Nuova ricetta" onClose={onClose}>
+        <Modal title={recipe ? "Modifica ricetta" : "Nuova ricetta"} onClose={onClose}>
             <label className="field">
                 Nome della ricetta*
                 <input type="text" autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Es. Insalata di pollo" />
@@ -66,10 +77,19 @@ export default function RecipeBuilderModal({ onClose, onCreated }: Props) {
                     <li key={i} className="entry-item">
                         <div>
                             <div className="entry-name">{ing.name}</div>
-                            <div className="muted small">
-                                {ing.quantityG} g · {Math.round((ing.caloriesPer100g * ing.quantityG) / 100)} kcal
-                            </div>
+                            <div className="muted small">{Math.round((ing.caloriesPer100g * ing.quantityG) / 100)} kcal</div>
                         </div>
+                        <label className="recipe-ingredient-quantity">
+                            <input
+                                type="number"
+                                min={0.1}
+                                step={0.1}
+                                value={ing.quantityG}
+                                onChange={(e) => updateIngredientQuantity(i, Number(e.target.value))}
+                                aria-label={`Quantità di ${ing.name} in grammi`}
+                            />
+                            <span>g</span>
+                        </label>
                         <button className="icon-btn" onClick={() => removeIngredient(i)} aria-label="Rimuovi ingrediente">
                             ✕
                         </button>
@@ -101,9 +121,9 @@ export default function RecipeBuilderModal({ onClose, onCreated }: Props) {
                 <button
                     className="btn primary"
                     onClick={handleSave}
-                    disabled={saving || !name.trim() || ingredients.length === 0}
+                    disabled={saving || !name.trim() || ingredients.length === 0 || ingredients.some((ing) => ing.quantityG <= 0)}
                 >
-                    {saving ? "Salvo…" : "Salva ricetta"}
+                    {saving ? "Salvo…" : recipe ? "Salva modifiche" : "Salva ricetta"}
                 </button>
             </div>
 

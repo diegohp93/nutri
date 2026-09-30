@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import Modal from "./Modal";
 import RecipeBuilderModal from "./RecipeBuilderModal";
-import { deleteRecipe, listRecipes } from "../api/client";
-import type { RecipeSummary } from "../types";
+import { deleteRecipe, getRecipe, listRecipes } from "../api/client";
+import type { RecipeDetail, RecipeSummary } from "../types";
 
 interface Props {
     onClose: () => void;
@@ -13,6 +13,7 @@ export default function RecipesModal({ onClose }: Props) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [builderOpen, setBuilderOpen] = useState(false);
+    const [editingRecipe, setEditingRecipe] = useState<RecipeDetail | null>(null);
 
     function reload() {
         setLoading(true);
@@ -31,6 +32,16 @@ export default function RecipesModal({ onClose }: Props) {
         reload();
     }
 
+    async function handleEdit(id: number) {
+        try {
+            setError(null);
+            const response = await getRecipe(id);
+            setEditingRecipe(response.recipe);
+        } catch (e) {
+            setError((e as Error).message);
+        }
+    }
+
     return (
         <Modal title="Le mie ricette" onClose={onClose}>
             {loading && <p className="muted">Caricamento…</p>}
@@ -45,9 +56,14 @@ export default function RecipesModal({ onClose }: Props) {
                                 {Math.round(r.caloriesPerServing)} kcal/porzione · {r.ingredientCount} ingredienti
                             </div>
                         </div>
-                        <button className="icon-btn" onClick={() => handleDelete(r.id)} aria-label="Elimina ricetta">
-                            ✕
-                        </button>
+                        <div className="entry-actions">
+                            <button className="icon-btn" onClick={() => handleEdit(r.id)} aria-label="Modifica ricetta">
+                                ✎
+                            </button>
+                            <button className="icon-btn" onClick={() => handleDelete(r.id)} aria-label="Elimina ricetta">
+                                ✕
+                            </button>
+                        </div>
                     </li>
                 ))}
                 {!loading && recipes.length === 0 && <li className="muted small empty">Nessuna ricetta salvata</li>}
@@ -59,6 +75,14 @@ export default function RecipesModal({ onClose }: Props) {
             {builderOpen && (
                 <RecipeBuilderModal
                     onClose={() => setBuilderOpen(false)}
+                    onCreated={reload}
+                />
+            )}
+
+            {editingRecipe && (
+                <RecipeBuilderModal
+                    recipe={editingRecipe}
+                    onClose={() => setEditingRecipe(null)}
                     onCreated={reload}
                 />
             )}

@@ -53,7 +53,7 @@ function normalizeProduct(p: OffProduct) {
     };
 }
 
-// Cerca tra i cibi già inseriti in passato dall'utente (compresi quelli creati manualmente):
+// Cerca tra i cibi già inseriti in passato dall'utente e gli ingredienti delle ricette:
 // vengono proposti prima dei risultati di Open Food Facts perché già noti/verificati dall'utente.
 router.get("/history", (req, res) => {
     const q = String(req.query.q ?? "").trim();
@@ -61,7 +61,8 @@ router.get("/history", (req, res) => {
 
     const rows = db
         .prepare(`
-                        SELECT d.*,
+                        SELECT d.name, d.brand, d.barcode, d.quantity_g, d.calories, d.protein, d.carbs, d.fat,
+                            d.id AS source_id,
                             (
                                 SELECT first_entry.quantity_g
                                 FROM diary_entries AS first_entry
@@ -77,9 +78,24 @@ router.get("/history", (req, res) => {
                                 WHERE h.name = d.name COLLATE NOCASE
                                     AND h.brand = COALESCE(d.brand, '') COLLATE NOCASE
                             )
-                        ORDER BY d.created_at DESC
+                        UNION ALL
+                        SELECT ri.name, NULL AS brand, NULL AS barcode, ri.quantity_g,
+                            ri.calories_per_100g * ri.quantity_g / 100 AS calories,
+                            ri.protein_per_100g * ri.quantity_g / 100 AS protein,
+                            ri.carbs_per_100g * ri.quantity_g / 100 AS carbs,
+                            ri.fat_per_100g * ri.quantity_g / 100 AS fat,
+                            ri.id AS source_id,
+                            ri.quantity_g AS first_quantity_g
+                        FROM recipe_ingredients AS ri
+                        WHERE ri.name LIKE ? COLLATE NOCASE
+                            AND NOT EXISTS (
+                                SELECT 1 FROM hidden_food_history AS h
+                                WHERE h.name = ri.name COLLATE NOCASE
+                                    AND h.brand = ''
+                            )
+                        ORDER BY source_id DESC
                 `)
-        .all(`%${q}%`) as {
+        .all(`%${q}%`, `%${q}%`) as {
             name: string;
             brand: string | null;
             barcode: string | null;
@@ -88,6 +104,7 @@ router.get("/history", (req, res) => {
             protein: number;
             carbs: number;
             fat: number;
+            source_id: number;
             first_quantity_g: number | null;
         }[];
 

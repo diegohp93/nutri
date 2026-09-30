@@ -70,6 +70,12 @@ body {
   color: rgba(255, 255, 255, 0.8);
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .settings-btn {
   background: rgba(255, 255, 255, 0.16);
   border-radius: 50%;
@@ -410,6 +416,25 @@ body {
   border-radius: 8px;
   border: 1px solid var(--border);
   font-size: 0.95rem;
+}
+
+.recipe-ingredient-quantity {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  margin-right: 8px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.recipe-ingredient-quantity input {
+  width: 76px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+  text-align: right;
 }
 
 .empty {

@@ -6,6 +6,7 @@ import { MEALS } from "./types";
 import MealSection from "./components/MealSection";
 import ExerciseSection from "./components/ExerciseSection";
 import SettingsModal from "./components/SettingsModal";
+import RecipesModal from "./components/RecipesModal";
 
 interface Goals {
   calories: number;
@@ -50,6 +51,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [recipesOpen, setRecipesOpen] = useState(false);
   const [goals, setGoals] = useState<Goals>({ calories: 0, protein: 0, carbs: 0, fat: 0 });
 
   const reload = useCallback(() => {
@@ -94,9 +96,14 @@ export default function App() {
             <p className="app-tagline">Il tuo diario alimentare</p>
           </div>
         </div>
-        <button className="icon-btn settings-btn" onClick={() => setSettingsOpen(true)} aria-label="Impostazioni">
-          ⚙️
-        </button>
+        <div className="header-actions">
+          <button className="icon-btn settings-btn" onClick={() => setRecipesOpen(true)} aria-label="Ricette">
+            📖
+          </button>
+          <button className="icon-btn settings-btn" onClick={() => setSettingsOpen(true)} aria-label="Impostazioni">
+            ⚙️
+          </button>
+        </div>
       </header>
 
       <div className="date-nav">
@@ -251,6 +258,7 @@ export default function App() {
           }}
         />
       )}
+      {recipesOpen && <RecipesModal onClose={() => setRecipesOpen(false)} />}
     </div>
   );
 }

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import Modal from "./Modal";
-import RecipesModal from "./RecipesModal";
 import { getSettings, updateSettings } from "../api/client";
 
 interface Props {
@@ -14,7 +13,6 @@ export default function SettingsModal({ onClose }: Props) {
     const [carbsGoal, setCarbsGoal] = useState<number>(0);
     const [fatGoal, setFatGoal] = useState<number>(0);
     const [saving, setSaving] = useState(false);
-    const [recipesOpen, setRecipesOpen] = useState(false);
 
     useEffect(() => {
         getSettings().then((r) => {
@@ -134,16 +132,12 @@ export default function SettingsModal({ onClose }: Props) {
                 />
             </label>
 
-            <button type="button" className="btn secondary" style={{ width: "100%", marginBottom: 12 }} onClick={() => setRecipesOpen(true)}>
-                📖 Le mie ricette
-            </button>
             <div className="modal-actions">
                 <button className="btn secondary" onClick={onClose}>Annulla</button>
                 <button className="btn primary" onClick={handleSave} disabled={saving}>
                     {saving ? "Salvo…" : "Salva"}
                 </button>
             </div>
-            {recipesOpen && <RecipesModal onClose={() => setRecipesOpen(false)} />}
         </Modal>
     );
 }

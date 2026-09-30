@@ -128,7 +128,6 @@ export default function AddIngredientModal({ onClose, onAdd }: Props) {
     }
 
     if (manualMode) {
-        const factor = manualQuantity / 100;
         return (
             <Modal title="Aggiungi ingrediente manualmente" onClose={onClose}>
                 <label className="field">

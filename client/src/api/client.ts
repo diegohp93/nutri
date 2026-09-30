@@ -113,6 +113,14 @@ export function createRecipe(payload: {
     return request(`/recipes`, { method: "POST", body: JSON.stringify(payload) });
 }
 
+export function updateRecipe(id: number, payload: {
+    name: string;
+    servings: number;
+    ingredients: IngredientInput[];
+}): Promise<void> {
+    return request(`/recipes/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+}
+
 export function deleteRecipe(id: number): Promise<void> {
     return request(`/recipes/${id}`, { method: "DELETE" });
 }

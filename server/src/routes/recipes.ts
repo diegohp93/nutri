@@ -73,13 +73,22 @@ router.get("/:id", (req, res) => {
     const ingredients = db
         .prepare("SELECT * FROM recipe_ingredients WHERE recipe_id = ? ORDER BY id")
         .all(recipe.id) as IngredientRow[];
+    const ingredientInputs = ingredients.map((ingredient) => ({
+        id: ingredient.id,
+        name: ingredient.name,
+        quantityG: ingredient.quantity_g,
+        caloriesPer100g: ingredient.calories_per_100g,
+        proteinPer100g: ingredient.protein_per_100g,
+        carbsPer100g: ingredient.carbs_per_100g,
+        fatPer100g: ingredient.fat_per_100g,
+    }));
 
     res.json({
         recipe: {
             id: recipe.id,
             name: recipe.name,
             servings: recipe.servings,
-            ingredients,
+            ingredients: ingredientInputs,
             ...aggregate(ingredients, recipe.servings),
         },
     });
@@ -117,6 +126,47 @@ router.post("/", (req, res) => {
 
         const created = db.prepare("SELECT * FROM recipes WHERE id = ?").get(recipeId);
         res.status(201).json({ recipe: created });
+    } catch (err) {
+        db.exec("ROLLBACK");
+        throw err;
+    }
+});
+
+router.put("/:id", (req, res) => {
+    const { name, servings, ingredients } = req.body ?? {};
+    if (!name || !Array.isArray(ingredients) || ingredients.length === 0) {
+        return res.status(400).json({ error: "Servono un nome e almeno un ingrediente" });
+    }
+
+    const recipeId = Number(req.params.id);
+    const recipe = db.prepare("SELECT id FROM recipes WHERE id = ?").get(recipeId);
+    if (!recipe) return res.status(404).json({ error: "Ricetta non trovata" });
+
+    const updateRecipe = db.prepare("UPDATE recipes SET name = ?, servings = ? WHERE id = ?");
+    const deleteIngredients = db.prepare("DELETE FROM recipe_ingredients WHERE recipe_id = ?");
+    const insertIngredient = db.prepare(`
+        INSERT INTO recipe_ingredients (recipe_id, name, quantity_g, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g)
+        VALUES (@recipeId, @name, @quantityG, @caloriesPer100g, @proteinPer100g, @carbsPer100g, @fatPer100g)
+    `);
+
+    db.exec("BEGIN");
+    try {
+        updateRecipe.run(name.trim(), Number(servings) || 1, recipeId);
+        deleteIngredients.run(recipeId);
+        for (const ing of ingredients) {
+            if (!ing?.name || !ing?.quantityG || Number(ing.quantityG) <= 0) continue;
+            insertIngredient.run({
+                recipeId,
+                name: ing.name,
+                quantityG: Number(ing.quantityG),
+                caloriesPer100g: Number(ing.caloriesPer100g) || 0,
+                proteinPer100g: Number(ing.proteinPer100g) || 0,
+                carbsPer100g: Number(ing.carbsPer100g) || 0,
+                fatPer100g: Number(ing.fatPer100g) || 0,
+            });
+        }
+        db.exec("COMMIT");
+        res.json({ ok: true });
     } catch (err) {
         db.exec("ROLLBACK");
         throw err;

@@ -156,7 +156,6 @@ export default function FoodSearchModal({ date, meal, onClose, onAdded }: Props)
     }
 
     if (manualMode) {
-        const factor = manualQuantity / 100;
         return (
             <Modal title="Aggiungi alimento manualmente" onClose={onClose}>
                 <label className="field">
