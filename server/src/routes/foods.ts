@@ -36,6 +36,13 @@ function firstBrand(brands: string | string[] | undefined): string | null {
     return cleanText(brands?.split(",")[0]);
 }
 
+// Estrae una marca incorporata nel nome come "Nome (Marca)" quando non c'è già una colonna brand.
+function splitEmbeddedBrand(name: string, brand: string | null): { name: string; brand: string | null } {
+    if (brand) return { name, brand };
+    const match = name.match(/^(.+)\s\(([^()]+)\)$/);
+    return match ? { name: match[1].trim(), brand: match[2].trim() } : { name, brand };
+}
+
 function normalizeProduct(p: OffProduct) {
     const n = p.nutriments ?? {};
     const servingQuantityG = p.serving_quantity ? Number(p.serving_quantity) : null;
@@ -113,7 +120,11 @@ router.get("/history", (req, res) => {
         ReturnType<typeof normalizeProduct> & { source: "history"; usageCount: number }
     >();
     for (const row of rows) {
-        const key = `${row.name.toLowerCase()}|${(row.brand ?? "").toLowerCase()}`;
+        // Gli ingredienti di ricetta non hanno una colonna brand: la marca viene salvata nel nome
+        // come "Nome (Marca)" (vedi AddIngredientModal). La separiamo qui per unificarli con le
+        // voci del diario (stesso prodotto, stesso nome/marca) invece di mostrarli come doppioni.
+        const { name, brand } = splitEmbeddedBrand(row.name, row.brand);
+        const key = `${name.toLowerCase()}|${(brand ?? "").toLowerCase()}`;
         const existing = byKey.get(key);
         if (existing) {
             existing.usageCount += 1;
@@ -122,8 +133,8 @@ router.get("/history", (req, res) => {
         const factor = row.quantity_g > 0 ? 100 / row.quantity_g : 0;
         byKey.set(key, {
             code: row.barcode,
-            name: row.name,
-            brand: row.brand,
+            name,
+            brand,
             quantity: null,
             servingSize: null,
             servingQuantityG: row.first_quantity_g && row.first_quantity_g > 0 ? row.first_quantity_g : null,

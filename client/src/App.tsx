@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import "./App.css";
-import { getDay, getSettings } from "./api/client";
+import { getDay, getSettings, setToken, AuthRequiredError } from "./api/client";
 import type { DayResponse } from "./types";
 import { MEALS } from "./types";
 import MealSection from "./components/MealSection";
@@ -53,26 +53,44 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [recipesOpen, setRecipesOpen] = useState(false);
   const [goals, setGoals] = useState<Goals>({ calories: 0, protein: 0, carbs: 0, fat: 0 });
+  const [authRequired, setAuthRequired] = useState(false);
+  const [tokenInput, setTokenInput] = useState("");
 
   const reload = useCallback(() => {
     setLoading(true);
     setError(null);
     getDay(date)
       .then(setDay)
-      .catch((e) => setError(e.message))
+      .catch((e) => {
+        if (e instanceof AuthRequiredError) setAuthRequired(true);
+        else setError(e.message);
+      })
       .finally(() => setLoading(false));
   }, [date]);
 
   const reloadGoals = useCallback(() => {
-    getSettings().then((r) => {
-      setGoals({
-        calories: Number(r.settings.calorie_goal) || 0,
-        protein: Number(r.settings.protein_goal_g) || 0,
-        carbs: Number(r.settings.carbs_goal_g) || 0,
-        fat: Number(r.settings.fat_goal_g) || 0,
+    getSettings()
+      .then((r) => {
+        setGoals({
+          calories: Number(r.settings.calorie_goal) || 0,
+          protein: Number(r.settings.protein_goal_g) || 0,
+          carbs: Number(r.settings.carbs_goal_g) || 0,
+          fat: Number(r.settings.fat_goal_g) || 0,
+        });
+      })
+      .catch((e) => {
+        if (e instanceof AuthRequiredError) setAuthRequired(true);
       });
-    });
   }, []);
+
+  function handleUnlock() {
+    if (!tokenInput.trim()) return;
+    setToken(tokenInput.trim());
+    setTokenInput("");
+    setAuthRequired(false);
+    reload();
+    reloadGoals();
+  }
 
   useEffect(() => {
     reload();
@@ -82,9 +100,34 @@ export default function App() {
     reloadGoals();
   }, [reloadGoals]);
 
+  if (authRequired) {
+    return (
+      <div className="app">
+        <section className="card" style={{ maxWidth: 360, margin: "80px auto" }}>
+          <h2 style={{ marginTop: 0 }}>Accesso richiesto</h2>
+          <p className="muted small">Inserisci il codice di accesso per usare Nutri.</p>
+          <label className="field">
+            Codice di accesso
+            <input
+              type="password"
+              autoFocus
+              value={tokenInput}
+              onChange={(e) => setTokenInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleUnlock()}
+            />
+          </label>
+          <div className="modal-actions">
+            <button className="btn primary" onClick={handleUnlock}>Sblocca</button>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   const totals = day?.totals;
   // stile MyFitnessPal: le calorie bruciate con l'esercizio si aggiungono all'obiettivo giornaliero
   const adjustedCalorieGoal = goals.calories > 0 ? goals.calories + (totals?.caloriesBurned ?? 0) : 0;
+
 
   return (
     <div className="app">

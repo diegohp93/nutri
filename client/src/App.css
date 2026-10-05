@@ -301,6 +301,7 @@ body {
 
 .macro-chip strong {
   font-size: 0.95rem;
+  font-weight: 600;
 }
 
 .macro-chip.over strong {
@@ -394,7 +395,7 @@ body {
 }
 
 .entry-name {
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .entry-actions {

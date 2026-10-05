@@ -1,27 +1,90 @@
 import express from "express";
 import cors from "cors";
-import "./db.js";
-import foodsRouter from "./routes/foods.js";
-import exercisesRouter from "./routes/exercises.js";
-import diaryRouter from "./routes/diary.js";
-import settingsRouter from "./routes/settings.js";
-import dayRouter from "./routes/day.js";
-import recipesRouter from "./routes/recipes.js";
+import path from "node:path";
+import fs from "node:fs";
+import { fileURLToPath } from "node:url";
+import { downloadDb, scheduleUpload, isDriveSyncEnabled } from "./driveSync.js";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
+// Se API_TOKEN è impostato (tipicamente quando il server è esposto su internet),
+// tutte le richieste /api/* tranne /api/health devono includerlo come Bearer token.
+const API_TOKEN = process.env.API_TOKEN;
+const dataDir = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(__dirname, "..", "data");
+const dbPath = path.join(dataDir, "nutri.db");
 
-app.use(cors());
-app.use(express.json());
+async function main() {
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
-app.get("/api/health", (_req, res) => res.json({ ok: true }));
-app.use("/api/foods", foodsRouter);
-app.use("/api/exercises", exercisesRouter);
-app.use("/api/diary", diaryRouter);
-app.use("/api/settings", settingsRouter);
-app.use("/api/day", dayRouter);
-app.use("/api/recipes", recipesRouter);
+    // Su hosting con filesystem effimero (es. Render free) il db va scaricato da Drive
+    // PRIMA che "./db.js" lo apra: per questo le route (che importano db.js) vengono
+    // caricate dinamicamente qui sotto, solo dopo l'eventuale download.
+    if (isDriveSyncEnabled()) {
+        console.log("[driveSync] Sincronizzazione con Google Drive attiva.");
+        await downloadDb(dbPath);
+    }
 
-app.listen(PORT, () => {
-    console.log(`Server Nutri in ascolto su http://localhost:${PORT}`);
+    const { default: foodsRouter } = await import("./routes/foods.js");
+    const { default: exercisesRouter } = await import("./routes/exercises.js");
+    const { default: diaryRouter } = await import("./routes/diary.js");
+    const { default: settingsRouter } = await import("./routes/settings.js");
+    const { default: dayRouter } = await import("./routes/day.js");
+    const { default: recipesRouter } = await import("./routes/recipes.js");
+
+    app.use(cors());
+    app.use(express.json());
+
+    app.get("/api/health", (_req, res) => res.json({ ok: true }));
+
+    if (API_TOKEN) {
+        app.use("/api", (req, res, next) => {
+            const header = req.header("authorization") ?? "";
+            const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+            if (token !== API_TOKEN) {
+                res.status(401).json({ error: "Non autorizzato" });
+                return;
+            }
+            next();
+        });
+    }
+
+    if (isDriveSyncEnabled()) {
+        // Dopo ogni richiesta che modifica dati, ricarica il database su Drive: necessario
+        // perché il filesystem locale viene azzerato ad ogni riavvio su hosting free tier.
+        app.use("/api", (req, res, next) => {
+            if (["POST", "PUT", "DELETE", "PATCH"].includes(req.method)) {
+                res.on("finish", () => {
+                    void scheduleUpload(dbPath);
+                });
+            }
+            next();
+        });
+    }
+
+    app.use("/api/foods", foodsRouter);
+    app.use("/api/exercises", exercisesRouter);
+    app.use("/api/diary", diaryRouter);
+    app.use("/api/settings", settingsRouter);
+    app.use("/api/day", dayRouter);
+    app.use("/api/recipes", recipesRouter);
+
+    // Se presente (deploy in produzione: vedi Dockerfile), serve anche la PWA del client
+    // sullo stesso dominio/porta dell'API, evitando CORS e un hosting separato.
+    const clientDist = path.join(__dirname, "..", "public");
+    if (fs.existsSync(clientDist)) {
+        app.use(express.static(clientDist));
+        app.get(/^\/(?!api).*/, (_req, res) => {
+            res.sendFile(path.join(clientDist, "index.html"));
+        });
+    }
+
+    app.listen(PORT, () => {
+        console.log(`Server Nutri in ascolto su http://localhost:${PORT}`);
+    });
+}
+
+main().catch((err) => {
+    console.error("Errore di avvio del server:", err);
+    process.exit(1);
 });

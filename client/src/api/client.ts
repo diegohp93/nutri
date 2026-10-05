@@ -10,11 +10,43 @@ import type {
     RecipeSummary,
 } from "../types";
 
+// Con il backend in locale resta vuoto (il proxy Vite inoltra /api); se il backend
+// è hostato altrove (es. per l'uso da mobile), va impostato a build-time nel client.
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
+const TOKEN_KEY = "nutri_api_token";
+
+export function getToken(): string | null {
+    return localStorage.getItem(TOKEN_KEY);
+}
+
+export function setToken(token: string | null) {
+    if (token) localStorage.setItem(TOKEN_KEY, token);
+    else localStorage.removeItem(TOKEN_KEY);
+}
+
+// window.prompt() blocca il thread e non è supportato in alcuni contesti (es. WebView
+// di una TWA Android, o crawler automatici come PWABuilder/Lighthouse): niente più prompt,
+// l'app mostra una schermata di sblocco quando riceve questo errore (vedi App.tsx).
+export class AuthRequiredError extends Error {
+    constructor() {
+        super("Accesso richiesto");
+        this.name = "AuthRequiredError";
+    }
+}
+
+async function doFetch(path: string, options?: RequestInit): Promise<Response> {
+    const token = getToken();
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    return fetch(`${API_BASE}/api${path}`, { headers, ...options });
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-    const res = await fetch(`/api${path}`, {
-        headers: { "Content-Type": "application/json" },
-        ...options,
-    });
+    const res = await doFetch(path, options);
+    if (res.status === 401) {
+        setToken(null);
+        throw new AuthRequiredError();
+    }
     if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || `Errore richiesta: ${res.status}`);

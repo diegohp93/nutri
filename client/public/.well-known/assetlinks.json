@@ -1,0 +1,14 @@
+[
+    {
+        "relation": [
+            "delegate_permission/common.handle_all_urls"
+        ],
+        "target": {
+            "namespace": "android_app",
+            "package_name": "dev.fly.nutri_ambered_silence_6268.twa",
+            "sha256_cert_fingerprints": [
+                "2D:44:0A:4C:9D:D8:A8:4E:38:53:8B:01:BE:86:A9:F2:76:AE:AC:08:A3:A1:3B:BB:C6:35:C8:51:8A:60:64:A9"
+            ]
+        }
+    }
+]

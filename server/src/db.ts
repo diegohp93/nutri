@@ -4,7 +4,10 @@ import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dataDir = path.join(__dirname, "..", "data");
+// DATA_DIR permette di puntare a un volume persistente quando il server gira su hosting cloud.
+const dataDir = process.env.DATA_DIR
+  ? path.resolve(process.env.DATA_DIR)
+  : path.join(__dirname, "..", "data");
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
 export const db = new DatabaseSync(path.join(dataDir, "nutri.db"));
