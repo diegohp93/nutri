@@ -72,7 +72,7 @@ export default function MealSection({ date, meal, entries, onChanged }: Props) {
                                     <button
                                         className="icon-btn"
                                         onClick={() => confirmEdit(e.id)}
-                                        disabled={savingEdit}
+                                        disabled={savingEdit || editQuantity <= 0}
                                         aria-label="Conferma quantità"
                                     >
                                         ✓

@@ -186,7 +186,7 @@ export default function AddIngredientModal({ onClose, onAdd }: Props) {
                     <button
                         className="btn primary"
                         onClick={handleManualConfirm}
-                        disabled={!manualName.trim() || manualKcal === ""}
+                        disabled={!manualName.trim() || manualKcal === "" || manualQuantity <= 0}
                     >
                         Aggiungi ingrediente
                     </button>
@@ -243,7 +243,7 @@ export default function AddIngredientModal({ onClose, onAdd }: Props) {
                 </div>
                 <div className="modal-actions">
                     <button className="btn secondary" onClick={() => setSelected(null)}>Indietro</button>
-                    <button className="btn primary" onClick={handleConfirm}>Aggiungi ingrediente</button>
+                    <button className="btn primary" onClick={handleConfirm} disabled={gramsForSelected <= 0}>Aggiungi ingrediente</button>
                 </div>
             </Modal>
         );

@@ -53,7 +53,8 @@ export default function RecipesModal({ onClose }: Props) {
                             <div className="entry-name">{r.name}</div>
                             <div className="muted small">
                                 {r.servings} {r.servings === 1 ? "porzione" : "porzioni"} · {Math.round(r.gramsPerServing)} g/porzione ·{" "}
-                                {Math.round(r.caloriesPerServing)} kcal/porzione · {r.ingredientCount} ingredienti
+                                {Math.round(r.caloriesPerServing)} kcal/porzione · {r.ingredientCount}{" "}
+                                {r.ingredientCount === 1 ? "ingrediente" : "ingredienti"}
                             </div>
                         </div>
                         <div className="entry-actions">

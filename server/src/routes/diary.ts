@@ -18,8 +18,8 @@ router.post("/", (req, res) => {
         fatPer100g,
     } = req.body ?? {};
 
-    if (!date || !meal || !name || !quantityG) {
-        return res.status(400).json({ error: "Campi obbligatori mancanti (date, meal, name, quantityG)" });
+    if (!date || !meal || !name || quantityG == null || Number(quantityG) <= 0) {
+        return res.status(400).json({ error: "Dati non validi: controlla data, pasto, nome e quantità (> 0)" });
     }
     if (!MEALS.includes(meal)) {
         return res.status(400).json({ error: "Pasto non valido" });

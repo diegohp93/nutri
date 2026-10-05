@@ -251,7 +251,7 @@ export default function FoodSearchModal({ date, meal, onClose, onAdded }: Props)
                     <button
                         className="btn primary"
                         onClick={handleManualConfirm}
-                        disabled={saving || !manualName.trim() || manualKcal === ""}
+                        disabled={saving || !manualName.trim() || manualKcal === "" || manualQuantity <= 0}
                     >
                         {saving ? "Aggiungo…" : "Aggiungi"}
                     </button>
@@ -320,7 +320,7 @@ export default function FoodSearchModal({ date, meal, onClose, onAdded }: Props)
                 {error && <p className="error">{error}</p>}
                 <div className="modal-actions">
                     <button className="btn secondary" onClick={() => setSelected(null)}>Indietro</button>
-                    <button className="btn primary" onClick={handleConfirm} disabled={saving}>
+                    <button className="btn primary" onClick={handleConfirm} disabled={saving || gramsForSelected <= 0}>
                         {saving ? "Aggiungo…" : "Aggiungi"}
                     </button>
                 </div>
