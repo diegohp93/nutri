@@ -5,9 +5,9 @@
         ],
         "target": {
             "namespace": "android_app",
-            "package_name": "dev.fly.nutri_ambered_silence_6268.twa",
+            "package_name": "com.onrender.nutri_u90f.twa",
             "sha256_cert_fingerprints": [
-                "2D:44:0A:4C:9D:D8:A8:4E:38:53:8B:01:BE:86:A9:F2:76:AE:AC:08:A3:A1:3B:BB:C6:35:C8:51:8A:60:64:A9"
+                "0F:34:3B:40:CA:AB:CD:E2:70:D4:1D:66:79:7C:A8:97:0F:09:99:E5:62:DB:FB:77:6E:69:11:60:92:56:A2:DE"
             ]
         }
     }
