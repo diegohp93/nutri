@@ -58,35 +58,66 @@ Apri poi [http://localhost:5173](http://localhost:5173). Il frontend inoltra aut
 
 ## Uso da mobile (sincronizzato con il desktop)
 
-Per usare l'app anche da telefono con gli stessi dati del desktop, il backend va reso
-raggiungibile da internet e installato come PWA sul telefono (icona in home screen,
-niente store). Il sito è già pronto per entrambe le cose:
+L'app è pubblicata su **Render.com** (hosting gratuito, nessuna carta di credito richiesta)
+e installata come PWA sul telefono (icona in home screen, niente store). I dati vivono
+su un file di **Google Drive**, letto e scritto dal backend tramite un Service Account:
+questo perché il piano gratuito di Render ha un filesystem effimero (si svuota ad ogni
+riavvio), quindi il database SQLite non può restare sul disco del server.
 
-1. **Pubblica il backend** (include anche il frontend, sullo stesso dominio). Serve un
-   account gratuito su [Fly.io](https://fly.io/) e la loro CLI (`flyctl`). Dalla root del
-   repo:
-   ```powershell
-   fly launch --no-deploy
-   fly secrets set API_TOKEN=scegli-un-codice-segreto
-   fly volumes create nutri_data --size 1
-   fly deploy
-   ```
-   `fly launch` legge automaticamente [fly.toml](fly.toml) e il [Dockerfile](Dockerfile) alla
-   root, che compilano sia `client/` sia `server/` e li impacchettano in un solo servizio.
-   `API_TOKEN` protegge l'app (altrimenti chiunque trovi l'URL può leggere/scrivere i tuoi
-   dati): se non lo imposti, il server resta aperto come in locale.
-2. **Apri l'URL pubblico** (es. `https://nutri.fly.dev`) dal browser del telefono: al primo
-   utilizzo ti verrà chiesto il codice impostato in `API_TOKEN`, dopo resta salvato.
-3. **Aggiungi alla home screen**: su Android/Chrome "Aggiungi a schermata Home", su
-   iOS/Safari "Condividi" → "Aggiungi a Home". L'app si apre a schermo intero come
-   un'app nativa (PWA) e resta sincronizzata in tempo reale con il desktop, perché
-   entrambi parlano con lo stesso backend.
+**URL pubblico:** https://nutri-u90f.onrender.com
+
+### Come funziona (vedi [server/src/driveSync.ts](server/src/driveSync.ts))
+
+1. All'avvio del processo, il server scarica `nutri.db` da Google Drive (file identificato da
+   `DRIVE_FILE_ID`) nella cartella temporanea `DATA_DIR` (`/tmp/data` su Render).
+2. Da lì in poi funziona esattamente come in locale: stesso `node:sqlite`, stesse query,
+   nessuna modifica al codice delle route.
+3. Dopo ogni richiesta che modifica dati (POST/PUT/DELETE/PATCH su `/api/*`), il file
+   aggiornato viene ricaricato su Drive.
+4. Il piano Free di Render addormenta il servizio dopo 15 minuti di inattività: al
+   risveglio (circa un minuto) il server riscarica l'ultima versione da Drive.
+
+### Variabili d'ambiente richieste su Render
+
+| Variabile | Valore |
+|---|---|
+| `API_TOKEN` | Codice di accesso a scelta (protegge l'app, richiesto al primo utilizzo) |
+| `DATA_DIR` | `/tmp/data` |
+| `DRIVE_FILE_ID` | ID del file Google Drive che contiene `nutri.db` |
+| `GOOGLE_SERVICE_ACCOUNT_JSON` | Contenuto completo del file JSON della chiave del Service Account Google (Drive API abilitata, con accesso Editor al file sopra) |
+
+### Setup da zero (account Google Cloud + Render)
+
+1. **Google Cloud**: crea un progetto gratuito su https://console.cloud.google.com/, abilita
+   "Google Drive API", crea un **Account di servizio** e scaricane la chiave in formato JSON.
+2. **Google Drive**: crea un file (anche vuoto) su https://drive.google.com, copiane l'ID
+   dall'URL, e condividilo con l'email del Service Account (campo `client_email` nel JSON)
+   con permesso **Editor**.
+3. **Render**: registrati su https://dashboard.render.com (gratis, con GitHub), crea un
+   **Web Service** collegato a questo repo (Render rileva automaticamente il [Dockerfile](Dockerfile)
+   alla root, che compila sia `client/` sia `server/`), piano **Free**, e imposta le 4
+   variabili d'ambiente della tabella sopra.
 4. **Da desktop**, usa lo stesso URL pubblico anziché l'avvio in locale: così i dati
    restano sempre un'unica copia, sincronizzata con il telefono.
 
-In alternativa a Fly.io puoi hostare lo stesso Dockerfile su qualunque altro servizio
-(Render, un VPS, un Raspberry Pi in casa con un tunnel) purché offra un volume/disco
-persistente per `server/data`.
+### Installazione sul telefono
+
+- **PWA (consigliata, Android e iOS)**: apri l'URL pubblico dal browser del telefono,
+  inserisci il codice di `API_TOKEN` quando richiesto, poi su Android/Chrome "Aggiungi a
+  schermata Home", su iOS/Safari "Condividi" → "Aggiungi a Home". L'app si apre a schermo
+  intero come un'app nativa.
+- **APK Android (opzionale)**: generabile gratis con https://www.pwabuilder.com/ incollando
+  l'URL pubblico (genera un pacchetto TWA installabile via sideload, senza Play Store). Il
+  file [client/public/.well-known/assetlinks.json](client/public/.well-known/assetlinks.json)
+  è già configurato per collegare l'app al dominio (nessuna barra URL quando installata).
+
+### Aggiornare manualmente il database su Drive
+
+Se devi ripristinare un backup o sostituire il database: su Google Drive, apri il file →
+**Gestisci versioni** → **Carica nuova versione** (mantiene lo stesso ID file, quindi
+`DRIVE_FILE_ID` non cambia). Poi riavvia il servizio su Render (Manual Deploy, oppure
+aspetta che si riaddormenti e risvegli da solo) perché il download avviene solo all'avvio.
+
 
 ## Note tecniche
 
