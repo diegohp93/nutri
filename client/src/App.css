@@ -591,6 +591,30 @@ body {
   border-color: var(--primary);
 }
 
+.search-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.search-row .search-input {
+  margin-bottom: 0;
+}
+
+.scan-btn {
+  flex-shrink: 0;
+  margin-bottom: 10px;
+  font-size: 1.3rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.barcode-video {
+  width: 100%;
+  border-radius: 12px;
+  background: #000;
+}
+
 .result-list {
   list-style: none;
   margin: 0;

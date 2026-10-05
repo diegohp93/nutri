@@ -1,8 +1,11 @@
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import Modal from "./Modal";
 import { searchFoods, searchFoodHistory, removeFoodHistory, getFoodByBarcode, addDiaryEntry } from "../api/client";
 import { isBarcodeQuery, mergeFoodResults } from "../searchHelpers";
 import type { FoodProduct, Meal } from "../types";
+
+// Caricato solo quando l'utente apre lo scanner: la libreria di decodifica pesa ~500kb.
+const BarcodeScannerModal = lazy(() => import("./BarcodeScannerModal"));
 
 interface Props {
     date: string;
@@ -21,6 +24,7 @@ export default function FoodSearchModal({ date, meal, onClose, onAdded }: Props)
     const [quantity, setQuantity] = useState(100);
     const [servings, setServings] = useState(1);
     const [saving, setSaving] = useState(false);
+    const [scannerOpen, setScannerOpen] = useState(false);
 
     const [manualMode, setManualMode] = useState(false);
     const [manualName, setManualName] = useState("");
@@ -153,6 +157,20 @@ export default function FoodSearchModal({ date, meal, onClose, onAdded }: Props)
         } catch (e) {
             setError((e as Error).message);
         }
+    }
+
+    if (scannerOpen) {
+        return (
+            <Suspense fallback={<Modal title="Inquadra il codice a barre" onClose={() => setScannerOpen(false)}><p className="muted">Caricamento…</p></Modal>}>
+                <BarcodeScannerModal
+                    onClose={() => setScannerOpen(false)}
+                    onDetected={(code) => {
+                        setScannerOpen(false);
+                        setQuery(code);
+                    }}
+                />
+            </Suspense>
+        );
     }
 
     if (manualMode) {
@@ -312,13 +330,24 @@ export default function FoodSearchModal({ date, meal, onClose, onAdded }: Props)
 
     return (
         <Modal title="Cerca cibo o bevanda" onClose={onClose}>
-            <input
-                className="search-input"
-                autoFocus
-                placeholder="Es. yogurt greco, mela, pasta…"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-            />
+            <div className="search-row">
+                <input
+                    className="search-input"
+                    autoFocus
+                    placeholder="Es. yogurt greco, mela, pasta…"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                />
+                <button
+                    type="button"
+                    className="icon-btn scan-btn"
+                    title="Scansiona codice a barre"
+                    aria-label="Scansiona codice a barre"
+                    onClick={() => setScannerOpen(true)}
+                >
+                    📷
+                </button>
+            </div>
             {loading && <p className="muted">Ricerca in corso…</p>}
             {error && <p className="error">{error}</p>}
             <ul className="result-list">
