@@ -4,7 +4,7 @@ import { db } from "./db.js";
 declare global {
     namespace Express {
         interface Request {
-            user?: { id: number; username: string };
+            user?: { id: number; username: string; isAdmin: boolean };
         }
     }
 }
@@ -34,15 +34,15 @@ export function createSession(userId: number): string {
     return token;
 }
 
-export function getSessionUser(token: string): { id: number; username: string } | null {
+export function getSessionUser(token: string): { id: number; username: string; isAdmin: boolean } | null {
     const row = db
         .prepare(
-            `SELECT u.id, u.username FROM sessions s
+            `SELECT u.id, u.username, u.is_admin FROM sessions s
              JOIN users u ON u.id = s.user_id
              WHERE s.token = ? AND s.expires_at > datetime('now')`
         )
-        .get(token) as { id: number; username: string } | undefined;
-    return row ?? null;
+        .get(token) as { id: number; username: string; is_admin: number } | undefined;
+    return row ? { id: row.id, username: row.username, isAdmin: !!row.is_admin } : null;
 }
 
 export function deleteSession(token: string): void {

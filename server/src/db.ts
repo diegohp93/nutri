@@ -83,6 +83,7 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
+    is_admin INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
@@ -105,6 +106,12 @@ for (const table of ["diary_entries", "exercise_entries", "recipes"]) {
   if (!hasColumn(table, "user_id")) {
     db.exec(`ALTER TABLE ${table} ADD COLUMN user_id INTEGER REFERENCES users(id);`);
   }
+}
+
+// Migrazione da un database creato prima dell'introduzione dei ruoli (tutti gli utenti erano
+// implicitamente amministratori, essendo l'unico utente possibile all'epoca).
+if (!hasColumn("users", "is_admin")) {
+  db.exec("ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0;");
 }
 
 // settings e hidden_food_history avevano una PRIMARY KEY che deve diventare composita
@@ -144,6 +151,7 @@ export function backfillOwnerData(): void {
   const users = db.prepare("SELECT id FROM users").all() as { id: number }[];
   if (users.length !== 1) return;
   const ownerId = users[0].id;
+  db.prepare("UPDATE users SET is_admin = 1 WHERE id = ?").run(ownerId);
   for (const table of ["diary_entries", "exercise_entries", "recipes", "settings", "hidden_food_history"]) {
     db.prepare(`UPDATE ${table} SET user_id = ? WHERE user_id IS NULL`).run(ownerId);
   }

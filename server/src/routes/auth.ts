@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, backfillOwnerData } from "../db.js";
-import { bearerToken, createSession, deleteSession, hashPassword, userCount, verifyPassword } from "../auth.js";
+import { bearerToken, createSession, deleteSession, getSessionUser, hashPassword, userCount, verifyPassword } from "../auth.js";
 
 const router = Router();
 
@@ -25,7 +25,7 @@ router.post("/setup", (req, res) => {
         res.status(400).json({ error: "Username e password richiesti" });
         return;
     }
-    db.prepare("INSERT INTO users (username, password_hash) VALUES (?, ?)").run(username, hashPassword(password));
+    db.prepare("INSERT INTO users (username, password_hash, is_admin) VALUES (?, ?, 1)").run(username, hashPassword(password));
     backfillOwnerData();
     res.json({ ok: true });
 });
@@ -49,6 +49,28 @@ router.post("/login", (req, res) => {
 router.post("/logout", (req, res) => {
     const token = bearerToken(req);
     if (token) deleteSession(token);
+    res.json({ ok: true });
+});
+
+// Crea altri utenti (es. account beta): richiede di essere già loggati come amministratore,
+// dato che /setup funziona solo finché il database è ancora vuoto.
+router.post("/users", (req, res) => {
+    const caller = getSessionUser(bearerToken(req) ?? "");
+    if (!caller?.isAdmin) {
+        res.status(401).json({ error: "Non autorizzato" });
+        return;
+    }
+    const { username, password } = req.body ?? {};
+    if (!username || !password) {
+        res.status(400).json({ error: "Username e password richiesti" });
+        return;
+    }
+    try {
+        db.prepare("INSERT INTO users (username, password_hash) VALUES (?, ?)").run(username, hashPassword(password));
+    } catch {
+        res.status(409).json({ error: "Username già in uso" });
+        return;
+    }
     res.json({ ok: true });
 });
 
