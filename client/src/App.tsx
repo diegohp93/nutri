@@ -7,6 +7,7 @@ import MealSection from "./components/MealSection";
 import ExerciseSection from "./components/ExerciseSection";
 import SettingsModal from "./components/SettingsModal";
 import RecipesModal from "./components/RecipesModal";
+import AccountModal from "./components/AccountModal";
 
 interface Goals {
   calories: number;
@@ -52,6 +53,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [recipesOpen, setRecipesOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const [goals, setGoals] = useState<Goals>({ calories: 0, protein: 0, carbs: 0, fat: 0 });
   const [authRequired, setAuthRequired] = useState(false);
   const [username, setUsername] = useState("");
@@ -165,7 +167,10 @@ export default function App() {
             📖
           </button>
           <button className="icon-btn settings-btn" onClick={() => setSettingsOpen(true)} aria-label="Impostazioni">
-            ⚙️
+            🎯
+          </button>
+          <button className="icon-btn settings-btn" onClick={() => setAccountOpen(true)} aria-label="Account">
+            👤
           </button>
         </div>
       </header>
@@ -323,6 +328,7 @@ export default function App() {
         />
       )}
       {recipesOpen && <RecipesModal onClose={() => setRecipesOpen(false)} />}
+      {accountOpen && <AccountModal onClose={() => setAccountOpen(false)} />}
     </div>
   );
 }
