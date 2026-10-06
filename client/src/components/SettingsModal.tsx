@@ -6,18 +6,6 @@ interface Props {
     onClose: () => void;
 }
 
-// frecce custom al posto di quelle native del browser, cosi possiamo posizionarle dove vogliamo
-function Stepper({ onUp, onDown }: { onUp: () => void; onDown: () => void }) {
-    return (
-        <span className="field-input-stepper">
-            <button type="button" tabIndex={-1} aria-label="Aumenta" onClick={onUp}>▲</button>
-            <button type="button" tabIndex={-1} aria-label="Diminuisci" onClick={onDown}>▼</button>
-        </span>
-    );
-}
-
-type MacroKey = "proteinGoal" | "carbsGoal" | "fatGoal";
-
 export default function SettingsModal({ onClose }: Props) {
     const [weight, setWeight] = useState<number>(70);
     const [calorieGoal, setCalorieGoal] = useState<number>(0);
@@ -78,29 +66,6 @@ export default function SettingsModal({ onClose }: Props) {
     // non ad ogni carattere digitato (altrimenti userebbe cifre intermedie incomplete).
     function handleGoalBlur() {
         autoCompleteGoal({ calorieGoal, proteinGoal, carbsGoal, fatGoal });
-    }
-
-    const kcalPerGram: Record<MacroKey, number> = { proteinGoal: 4, carbsGoal: 4, fatGoal: 9 };
-    const macroSetters: Record<MacroKey, (v: number) => void> = {
-        proteinGoal: setProteinGoal,
-        carbsGoal: setCarbsGoal,
-        fatGoal: setFatGoal,
-    };
-    const macroValues: Record<MacroKey, number> = { proteinGoal, carbsGoal, fatGoal };
-
-    // le frecce dello stepper lavorano sempre sui grammi, completando subito il 4° obiettivo come il blur
-    function adjustGrams(key: MacroKey, delta: number) {
-        const next = Math.max(0, macroValues[key] + delta);
-        macroSetters[key](next);
-        autoCompleteGoal({ calorieGoal, proteinGoal, carbsGoal, fatGoal, [key]: next });
-    }
-    function adjustPercent(key: MacroKey, delta: number) {
-        const kcalPerG = kcalPerGram[key];
-        const currentPct = Math.round(gramsToPct(macroValues[key], kcalPerG));
-        const nextPct = Math.max(0, Math.min(100, currentPct + delta));
-        const nextGrams = Math.round(pctToGrams(nextPct, kcalPerG));
-        macroSetters[key](nextGrams);
-        autoCompleteGoal({ calorieGoal, proteinGoal, carbsGoal, fatGoal, [key]: nextGrams });
     }
 
     async function handleSave() {
@@ -178,7 +143,6 @@ export default function SettingsModal({ onClose }: Props) {
                                 onBlur={handleGoalBlur}
                             />
                             {calorieGoal > 0 && <span className="field-input-hint">≈ {Math.round(gramsToPct(proteinGoal, 4))}%</span>}
-                            <Stepper onUp={() => adjustGrams("proteinGoal", 1)} onDown={() => adjustGrams("proteinGoal", -1)} />
                         </div>
                     </label>
                     <label className="field">
@@ -192,7 +156,6 @@ export default function SettingsModal({ onClose }: Props) {
                                 onBlur={handleGoalBlur}
                             />
                             {calorieGoal > 0 && <span className="field-input-hint">≈ {Math.round(gramsToPct(carbsGoal, 4))}%</span>}
-                            <Stepper onUp={() => adjustGrams("carbsGoal", 1)} onDown={() => adjustGrams("carbsGoal", -1)} />
                         </div>
                     </label>
                     <label className="field">
@@ -206,7 +169,6 @@ export default function SettingsModal({ onClose }: Props) {
                                 onBlur={handleGoalBlur}
                             />
                             {calorieGoal > 0 && <span className="field-input-hint">≈ {Math.round(gramsToPct(fatGoal, 9))}%</span>}
-                            <Stepper onUp={() => adjustGrams("fatGoal", 1)} onDown={() => adjustGrams("fatGoal", -1)} />
                         </div>
                     </label>
                 </>
@@ -224,7 +186,6 @@ export default function SettingsModal({ onClose }: Props) {
                                 onBlur={handleGoalBlur}
                             />
                             <span className="field-input-hint">≈ {proteinGoal} g</span>
-                            <Stepper onUp={() => adjustPercent("proteinGoal", 1)} onDown={() => adjustPercent("proteinGoal", -1)} />
                         </div>
                     </label>
                     <label className="field">
@@ -239,7 +200,6 @@ export default function SettingsModal({ onClose }: Props) {
                                 onBlur={handleGoalBlur}
                             />
                             <span className="field-input-hint">≈ {carbsGoal} g</span>
-                            <Stepper onUp={() => adjustPercent("carbsGoal", 1)} onDown={() => adjustPercent("carbsGoal", -1)} />
                         </div>
                     </label>
                     <label className="field">
@@ -254,7 +214,6 @@ export default function SettingsModal({ onClose }: Props) {
                                 onBlur={handleGoalBlur}
                             />
                             <span className="field-input-hint">≈ {fatGoal} g</span>
-                            <Stepper onUp={() => adjustPercent("fatGoal", 1)} onDown={() => adjustPercent("fatGoal", -1)} />
                         </div>
                     </label>
                 </>

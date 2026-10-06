@@ -702,63 +702,21 @@ body {
 }
 
 .field-input-wrap {
-  position: relative;
   display: flex;
   align-items: center;
+  gap: 8px;
 }
 
 .field-input-wrap input {
-  width: 100%;
-  padding-right: 96px;
-}
-
-.field-input-wrap input::-webkit-outer-spin-button,
-.field-input-wrap input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.field-input-wrap input[type="number"] {
-  -moz-appearance: textfield;
+  flex: 1;
+  min-width: 0;
 }
 
 .field-input-hint {
-  position: absolute;
-  right: 40px;
+  flex-shrink: 0;
   font-size: 0.78rem;
   color: var(--muted);
-  pointer-events: none;
   white-space: nowrap;
-}
-
-.field-input-stepper {
-  position: absolute;
-  right: 6px;
-  display: flex;
-  flex-direction: column;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-}
-
-.field-input-wrap:hover .field-input-stepper,
-.field-input-wrap:focus-within .field-input-stepper {
-  opacity: 1;
-}
-
-.field-input-stepper button {
-  width: 20px;
-  height: 13px;
-  border: none;
-  background: transparent;
-  color: var(--muted);
-  font-size: 0.6rem;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0;
-}
-
-.field-input-stepper button:hover {
-  color: var(--primary);
 }
 
 .unit-toggle {
