@@ -709,16 +709,49 @@ body {
 
 .field-input-wrap input {
   width: 100%;
-  padding-right: 80px;
+  padding-right: 96px;
+}
+
+.field-input-wrap input::-webkit-outer-spin-button,
+.field-input-wrap input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.field-input-wrap input[type="number"] {
+  -moz-appearance: textfield;
 }
 
 .field-input-hint {
   position: absolute;
-  right: 36px;
+  right: 40px;
   font-size: 0.78rem;
   color: var(--muted);
   pointer-events: none;
   white-space: nowrap;
+}
+
+.field-input-stepper {
+  position: absolute;
+  right: 6px;
+  display: flex;
+  flex-direction: column;
+}
+
+.field-input-stepper button {
+  width: 20px;
+  height: 13px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.6rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.field-input-stepper button:hover {
+  color: var(--primary);
 }
 
 .unit-toggle {
