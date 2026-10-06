@@ -702,20 +702,21 @@ body {
 }
 
 .field-input-wrap {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
 }
 
 .field-input-wrap input {
-  flex: 1;
-  min-width: 0;
+  width: 100%;
 }
 
 .field-input-hint {
-  flex-shrink: 0;
+  position: absolute;
+  left: 60px;
   font-size: 0.78rem;
   color: var(--muted);
+  pointer-events: none;
   white-space: nowrap;
 }
 
