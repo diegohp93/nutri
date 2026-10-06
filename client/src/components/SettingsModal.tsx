@@ -6,6 +6,9 @@ interface Props {
     onClose: () => void;
 }
 
+// oltre questa soglia le calorie giornaliere non hanno senso per nessuna persona reale
+const CALORIE_GOAL_MAX = 10000;
+
 export default function SettingsModal({ onClose }: Props) {
     const [weight, setWeight] = useState<number>(70);
     const [calorieGoal, setCalorieGoal] = useState<number>(0);
@@ -24,6 +27,12 @@ export default function SettingsModal({ onClose }: Props) {
     }
     // se le calorie non sono impostate le percentuali non hanno un totale da cui derivare i grammi
     const effectiveMacroUnit = calorieGoal > 0 ? macroUnit : "g";
+
+    // stessa regola in entrambe le unità: % che sommano a 100 equivale a grammi che coprono esattamente le kcal totali
+    const macroPctSum = Math.round(gramsToPct(proteinGoal, 4) + gramsToPct(carbsGoal, 4) + gramsToPct(fatGoal, 9));
+    const anyMacroSet = proteinGoal > 0 || carbsGoal > 0 || fatGoal > 0;
+    const macroMismatch = calorieGoal > 0 && anyMacroSet && macroPctSum !== 100;
+    const calorieTooHigh = calorieGoal > CALORIE_GOAL_MAX;
 
     useEffect(() => {
         getSettings().then((r) => {
@@ -107,11 +116,16 @@ export default function SettingsModal({ onClose }: Props) {
                 <input
                     type="number"
                     min={0}
+                    max={CALORIE_GOAL_MAX}
+                    className={calorieTooHigh ? "input-error" : undefined}
                     value={calorieGoal}
                     onChange={(e) => setCalorieGoal(Number(e.target.value))}
                     onBlur={handleGoalBlur}
                 />
             </label>
+            {calorieTooHigh && (
+                <p className="error small">Obiettivo calorico non plausibile (max {CALORIE_GOAL_MAX} kcal).</p>
+            )}
 
             <div className="macro-unit-row">
                 <span className="muted small">Obiettivi macro in:</span>
@@ -138,6 +152,8 @@ export default function SettingsModal({ onClose }: Props) {
                             <input
                                 type="number"
                                 min={0}
+                                max={calorieGoal > 0 ? Math.round(calorieGoal / 4) : undefined}
+                                className={macroMismatch ? "input-error" : undefined}
                                 value={proteinGoal}
                                 onChange={(e) => setProteinGoal(Number(e.target.value))}
                                 onBlur={handleGoalBlur}
@@ -151,6 +167,8 @@ export default function SettingsModal({ onClose }: Props) {
                             <input
                                 type="number"
                                 min={0}
+                                max={calorieGoal > 0 ? Math.round(calorieGoal / 4) : undefined}
+                                className={macroMismatch ? "input-error" : undefined}
                                 value={carbsGoal}
                                 onChange={(e) => setCarbsGoal(Number(e.target.value))}
                                 onBlur={handleGoalBlur}
@@ -164,6 +182,8 @@ export default function SettingsModal({ onClose }: Props) {
                             <input
                                 type="number"
                                 min={0}
+                                max={calorieGoal > 0 ? Math.round(calorieGoal / 9) : undefined}
+                                className={macroMismatch ? "input-error" : undefined}
                                 value={fatGoal}
                                 onChange={(e) => setFatGoal(Number(e.target.value))}
                                 onBlur={handleGoalBlur}
@@ -181,6 +201,7 @@ export default function SettingsModal({ onClose }: Props) {
                                 type="number"
                                 min={0}
                                 max={100}
+                                className={macroMismatch ? "input-error" : undefined}
                                 value={Math.round(gramsToPct(proteinGoal, 4))}
                                 onChange={(e) => setProteinGoal(Math.round(pctToGrams(Number(e.target.value), 4)))}
                                 onBlur={handleGoalBlur}
@@ -195,6 +216,7 @@ export default function SettingsModal({ onClose }: Props) {
                                 type="number"
                                 min={0}
                                 max={100}
+                                className={macroMismatch ? "input-error" : undefined}
                                 value={Math.round(gramsToPct(carbsGoal, 4))}
                                 onChange={(e) => setCarbsGoal(Math.round(pctToGrams(Number(e.target.value), 4)))}
                                 onBlur={handleGoalBlur}
@@ -209,6 +231,7 @@ export default function SettingsModal({ onClose }: Props) {
                                 type="number"
                                 min={0}
                                 max={100}
+                                className={macroMismatch ? "input-error" : undefined}
                                 value={Math.round(gramsToPct(fatGoal, 9))}
                                 onChange={(e) => setFatGoal(Math.round(pctToGrams(Number(e.target.value), 9)))}
                                 onBlur={handleGoalBlur}
@@ -219,9 +242,15 @@ export default function SettingsModal({ onClose }: Props) {
                 </>
             )}
 
+            {macroMismatch && (
+                <p className="error small">
+                    Le percentuali sommano a {macroPctSum}% invece di 100%. Correggi i valori prima di salvare.
+                </p>
+            )}
+
             <div className="modal-actions">
                 <button className="btn secondary" onClick={onClose}>Annulla</button>
-                <button className="btn primary" onClick={handleSave} disabled={saving}>
+                <button className="btn primary" onClick={handleSave} disabled={saving || macroMismatch || calorieTooHigh}>
                     {saving ? "Salvo…" : "Salva"}
                 </button>
             </div>

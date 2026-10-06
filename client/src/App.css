@@ -701,6 +701,10 @@ body {
   border-color: var(--primary);
 }
 
+.field input.input-error {
+  border-color: #c0392b;
+}
+
 .field-input-wrap {
   position: relative;
   display: flex;
