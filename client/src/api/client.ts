@@ -14,6 +14,7 @@ import type {
 // è hostato altrove (es. per l'uso da mobile), va impostato a build-time nel client.
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 const TOKEN_KEY = "nutri_api_token";
+const USERNAME_KEY = "nutri_username";
 
 export function getToken(): string | null {
     return localStorage.getItem(TOKEN_KEY);
@@ -22,6 +23,10 @@ export function getToken(): string | null {
 export function setToken(token: string | null) {
     if (token) localStorage.setItem(TOKEN_KEY, token);
     else localStorage.removeItem(TOKEN_KEY);
+}
+
+export function getUsername(): string | null {
+    return localStorage.getItem(USERNAME_KEY);
 }
 
 // window.prompt() blocca il thread e non è supportato in alcuni contesti (es. WebView
@@ -53,6 +58,27 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     }
     if (res.status === 204) return undefined as T;
     return res.json() as Promise<T>;
+}
+
+export async function login(username: string, password: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+    });
+    if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Credenziali non valide");
+    }
+    const { token } = (await res.json()) as { token: string };
+    setToken(token);
+    localStorage.setItem(USERNAME_KEY, username);
+}
+
+export async function logout(): Promise<void> {
+    await doFetch("/auth/logout", { method: "POST" }).catch(() => { });
+    setToken(null);
+    localStorage.removeItem(USERNAME_KEY);
 }
 
 export function getDay(date: string): Promise<DayResponse> {

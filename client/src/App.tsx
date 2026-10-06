@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import "./App.css";
-import { getDay, getSettings, setToken, AuthRequiredError } from "./api/client";
+import { getDay, getSettings, login, AuthRequiredError } from "./api/client";
 import type { DayResponse } from "./types";
 import { MEALS } from "./types";
 import MealSection from "./components/MealSection";
 import ExerciseSection from "./components/ExerciseSection";
 import SettingsModal from "./components/SettingsModal";
 import RecipesModal from "./components/RecipesModal";
+import AccountModal from "./components/AccountModal";
 
 interface Goals {
   calories: number;
@@ -52,9 +53,12 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [recipesOpen, setRecipesOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const [goals, setGoals] = useState<Goals>({ calories: 0, protein: 0, carbs: 0, fat: 0 });
   const [authRequired, setAuthRequired] = useState(false);
-  const [tokenInput, setTokenInput] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   const reload = useCallback(() => {
     setLoading(true);
@@ -83,13 +87,17 @@ export default function App() {
       });
   }, []);
 
-  function handleUnlock() {
-    if (!tokenInput.trim()) return;
-    setToken(tokenInput.trim());
-    setTokenInput("");
-    setAuthRequired(false);
-    reload();
-    reloadGoals();
+  function handleLogin() {
+    if (!username.trim() || !password) return;
+    setLoginError(null);
+    login(username.trim(), password)
+      .then(() => {
+        setPassword("");
+        setAuthRequired(false);
+        reload();
+        reloadGoals();
+      })
+      .catch((e) => setLoginError(e.message));
   }
 
   useEffect(() => {
@@ -105,19 +113,29 @@ export default function App() {
       <div className="app">
         <section className="card" style={{ maxWidth: 360, margin: "80px auto" }}>
           <h2 style={{ marginTop: 0 }}>Accesso richiesto</h2>
-          <p className="muted small">Inserisci il codice di accesso per usare Nutri.</p>
+          <p className="muted small">Accedi con le tue credenziali per usare Nutri.</p>
           <label className="field">
-            Codice di accesso
+            Username
             <input
-              type="password"
+              type="text"
               autoFocus
-              value={tokenInput}
-              onChange={(e) => setTokenInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleUnlock()}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleLogin()}
             />
           </label>
+          <label className="field">
+            Password
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+            />
+          </label>
+          {loginError && <p className="error small">{loginError}</p>}
           <div className="modal-actions">
-            <button className="btn primary" onClick={handleUnlock}>Sblocca</button>
+            <button className="btn primary" onClick={handleLogin}>Accedi</button>
           </div>
         </section>
       </div>
@@ -149,7 +167,10 @@ export default function App() {
             📖
           </button>
           <button className="icon-btn settings-btn" onClick={() => setSettingsOpen(true)} aria-label="Impostazioni">
-            ⚙️
+            🎯
+          </button>
+          <button className="icon-btn settings-btn" onClick={() => setAccountOpen(true)} aria-label="Account">
+            👤
           </button>
         </div>
       </header>
@@ -307,6 +328,7 @@ export default function App() {
         />
       )}
       {recipesOpen && <RecipesModal onClose={() => setRecipesOpen(false)} />}
+      {accountOpen && <AccountModal onClose={() => setAccountOpen(false)} />}
     </div>
   );
 }

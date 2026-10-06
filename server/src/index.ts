@@ -8,9 +8,6 @@ import { downloadDb, scheduleUpload, isDriveSyncEnabled } from "./driveSync.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
-// Se API_TOKEN è impostato (tipicamente quando il server è esposto su internet),
-// tutte le richieste /api/* tranne /api/health devono includerlo come Bearer token.
-const API_TOKEN = process.env.API_TOKEN;
 const dataDir = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(__dirname, "..", "data");
 const dbPath = path.join(dataDir, "nutri.db");
 
@@ -31,23 +28,31 @@ async function main() {
     const { default: settingsRouter } = await import("./routes/settings.js");
     const { default: dayRouter } = await import("./routes/day.js");
     const { default: recipesRouter } = await import("./routes/recipes.js");
+    const { default: authRouter } = await import("./routes/auth.js");
+    const { bearerToken, getSessionUser, userCount } = await import("./auth.js");
 
     app.use(cors());
     app.use(express.json());
 
     app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
-    if (API_TOKEN) {
-        app.use("/api", (req, res, next) => {
-            const header = req.header("authorization") ?? "";
-            const token = header.startsWith("Bearer ") ? header.slice(7) : null;
-            if (token !== API_TOKEN) {
-                res.status(401).json({ error: "Non autorizzato" });
-                return;
-            }
+    app.use("/api/auth", authRouter);
+
+    // Richiede login solo se esiste già almeno un utente: finché nessuno è stato creato
+    // (es. sviluppo locale, prima del /api/auth/setup) l'app resta aperta.
+    app.use("/api", (req, res, next) => {
+        if (userCount() === 0) {
             next();
-        });
-    }
+            return;
+        }
+        const user = getSessionUser(bearerToken(req) ?? "");
+        if (!user) {
+            res.status(401).json({ error: "Non autorizzato" });
+            return;
+        }
+        req.user = user;
+        next();
+    });
 
     if (isDriveSyncEnabled()) {
         // Dopo ogni richiesta che modifica dati, ricarica il database su Drive: necessario

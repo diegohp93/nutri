@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { db } from "../db.js";
+import { userIdOf } from "../auth.js";
 
 const router = Router();
 const MEALS = ["breakfast", "lunch", "dinner", "snack"] as const;
@@ -32,8 +33,8 @@ router.post("/", (req, res) => {
     const fat = Math.round((Number(fatPer100g) || 0) * factor * 10) / 10;
 
     const stmt = db.prepare(`
-    INSERT INTO diary_entries (date, meal, name, brand, barcode, quantity_g, calories, protein, carbs, fat)
-    VALUES (@date, @meal, @name, @brand, @barcode, @quantityG, @calories, @protein, @carbs, @fat)
+    INSERT INTO diary_entries (date, meal, name, brand, barcode, quantity_g, calories, protein, carbs, fat, user_id)
+    VALUES (@date, @meal, @name, @brand, @barcode, @quantityG, @calories, @protein, @carbs, @fat, @userId)
   `);
     const info = stmt.run({
         date,
@@ -46,6 +47,7 @@ router.post("/", (req, res) => {
         protein,
         carbs,
         fat,
+        userId: userIdOf(req),
     });
 
     const created = db.prepare("SELECT * FROM diary_entries WHERE id = ?").get(info.lastInsertRowid);
@@ -53,7 +55,7 @@ router.post("/", (req, res) => {
 });
 
 router.delete("/:id", (req, res) => {
-    db.prepare("DELETE FROM diary_entries WHERE id = ?").run(req.params.id);
+    db.prepare("DELETE FROM diary_entries WHERE id = ? AND user_id IS ?").run(req.params.id, userIdOf(req));
     res.status(204).end();
 });
 
@@ -64,7 +66,8 @@ router.put("/:id", (req, res) => {
         return res.status(400).json({ error: "Quantità non valida" });
     }
 
-    const existing = db.prepare("SELECT * FROM diary_entries WHERE id = ?").get(req.params.id) as
+    const userId = userIdOf(req);
+    const existing = db.prepare("SELECT * FROM diary_entries WHERE id = ? AND user_id IS ?").get(req.params.id, userId) as
         | { quantity_g: number; calories: number; protein: number; carbs: number; fat: number }
         | undefined;
     if (!existing) return res.status(404).json({ error: "Voce non trovata" });
@@ -76,8 +79,8 @@ router.put("/:id", (req, res) => {
     const fat = Math.round(existing.fat * ratio * 10) / 10;
 
     db.prepare(
-        "UPDATE diary_entries SET quantity_g = ?, calories = ?, protein = ?, carbs = ?, fat = ? WHERE id = ?"
-    ).run(Number(quantityG), calories, protein, carbs, fat, req.params.id);
+        "UPDATE diary_entries SET quantity_g = ?, calories = ?, protein = ?, carbs = ?, fat = ? WHERE id = ? AND user_id IS ?"
+    ).run(Number(quantityG), calories, protein, carbs, fat, req.params.id, userId);
 
     const updated = db.prepare("SELECT * FROM diary_entries WHERE id = ?").get(req.params.id);
     res.json({ entry: updated });

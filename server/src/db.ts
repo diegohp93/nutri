@@ -78,5 +78,83 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_diary_date ON diary_entries(date);
   CREATE INDEX IF NOT EXISTS idx_exercise_date ON exercise_entries(date);
   CREATE INDEX IF NOT EXISTS idx_recipe_ingredients_recipe ON recipe_ingredients(recipe_id);
+
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    is_admin INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS sessions (
+    token TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    expires_at TEXT NOT NULL
+  );
 `);
+
+function hasColumn(table: string, column: string): boolean {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+  return cols.some((c) => c.name === column);
+}
+
+// Step 1 della migrazione multi-utente: aggiunge solo la colonna, senza backfill né
+// filtro nelle query (fatto nello step 2) - finché esiste un solo utente non cambia nulla.
+for (const table of ["diary_entries", "exercise_entries", "recipes"]) {
+  if (!hasColumn(table, "user_id")) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN user_id INTEGER REFERENCES users(id);`);
+  }
+}
+
+// Migrazione da un database creato prima dell'introduzione dei ruoli (tutti gli utenti erano
+// implicitamente amministratori, essendo l'unico utente possibile all'epoca).
+if (!hasColumn("users", "is_admin")) {
+  db.exec("ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0;");
+}
+
+// settings e hidden_food_history avevano una PRIMARY KEY che deve diventare composita
+// (includere user_id): SQLite non supporta l'ALTER di una PRIMARY KEY, va ricreata la tabella.
+if (!hasColumn("settings", "user_id")) {
+  db.exec(`
+    ALTER TABLE settings RENAME TO settings_old;
+    CREATE TABLE settings (
+      user_id INTEGER REFERENCES users(id),
+      key TEXT NOT NULL,
+      value TEXT NOT NULL,
+      PRIMARY KEY (user_id, key)
+    );
+    INSERT INTO settings (user_id, key, value) SELECT NULL, key, value FROM settings_old;
+    DROP TABLE settings_old;
+  `);
+}
+
+if (!hasColumn("hidden_food_history", "user_id")) {
+  db.exec(`
+    ALTER TABLE hidden_food_history RENAME TO hidden_food_history_old;
+    CREATE TABLE hidden_food_history (
+      user_id INTEGER REFERENCES users(id),
+      name TEXT NOT NULL,
+      brand TEXT NOT NULL DEFAULT '',
+      PRIMARY KEY (user_id, name, brand)
+    );
+    INSERT INTO hidden_food_history (user_id, name, brand) SELECT NULL, name, brand FROM hidden_food_history_old;
+    DROP TABLE hidden_food_history_old;
+  `);
+}
+
+// Step 2: finché esiste un solo utente, tutti i dati storici senza proprietario sono suoi
+// per definizione (sono stati creati prima che il login esistesse). Se in futuro esistono
+// più utenti, il backfill automatico si ferma per evitare assegnazioni ambigue.
+export function backfillOwnerData(): void {
+  const users = db.prepare("SELECT id FROM users").all() as { id: number }[];
+  if (users.length !== 1) return;
+  const ownerId = users[0].id;
+  db.prepare("UPDATE users SET is_admin = 1 WHERE id = ?").run(ownerId);
+  for (const table of ["diary_entries", "exercise_entries", "recipes", "settings", "hidden_food_history"]) {
+    db.prepare(`UPDATE ${table} SET user_id = ? WHERE user_id IS NULL`).run(ownerId);
+  }
+}
+backfillOwnerData();
 

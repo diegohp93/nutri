@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { db } from "../db.js";
+import { userIdOf } from "../auth.js";
 
 const router = Router();
 
@@ -41,12 +42,14 @@ function aggregate(ingredients: IngredientRow[], servings: number) {
 }
 
 // Elenco ricette salvate con valori nutrizionali aggregati
-router.get("/", (_req, res) => {
-    const recipes = db.prepare("SELECT * FROM recipes ORDER BY name COLLATE NOCASE").all() as {
-        id: number;
-        name: string;
-        servings: number;
-    }[];
+router.get("/", (req, res) => {
+    const recipes = db
+        .prepare("SELECT * FROM recipes WHERE user_id IS ? ORDER BY name COLLATE NOCASE")
+        .all(userIdOf(req)) as {
+            id: number;
+            name: string;
+            servings: number;
+        }[];
 
     const ingredientStmt = db.prepare("SELECT * FROM recipe_ingredients WHERE recipe_id = ?");
     const result = recipes.map((r) => {
@@ -65,7 +68,7 @@ router.get("/", (_req, res) => {
 
 // Dettaglio ricetta con lista ingredienti (per visualizzarla o modificarla)
 router.get("/:id", (req, res) => {
-    const recipe = db.prepare("SELECT * FROM recipes WHERE id = ?").get(req.params.id) as
+    const recipe = db.prepare("SELECT * FROM recipes WHERE id = ? AND user_id IS ?").get(req.params.id, userIdOf(req)) as
         | { id: number; name: string; servings: number }
         | undefined;
     if (!recipe) return res.status(404).json({ error: "Ricetta non trovata" });
@@ -100,7 +103,7 @@ router.post("/", (req, res) => {
         return res.status(400).json({ error: "Servono un nome e almeno un ingrediente" });
     }
 
-    const insertRecipe = db.prepare("INSERT INTO recipes (name, servings) VALUES (@name, @servings)");
+    const insertRecipe = db.prepare("INSERT INTO recipes (name, servings, user_id) VALUES (@name, @servings, @userId)");
     const insertIngredient = db.prepare(`
         INSERT INTO recipe_ingredients (recipe_id, name, quantity_g, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g)
         VALUES (@recipeId, @name, @quantityG, @caloriesPer100g, @proteinPer100g, @carbsPer100g, @fatPer100g)
@@ -108,7 +111,7 @@ router.post("/", (req, res) => {
 
     db.exec("BEGIN");
     try {
-        const info = insertRecipe.run({ name, servings: Number(servings) || 1 });
+        const info = insertRecipe.run({ name, servings: Number(servings) || 1, userId: userIdOf(req) });
         const recipeId = info.lastInsertRowid;
         for (const ing of ingredients) {
             if (!ing?.name || !ing?.quantityG) continue;
@@ -139,7 +142,7 @@ router.put("/:id", (req, res) => {
     }
 
     const recipeId = Number(req.params.id);
-    const recipe = db.prepare("SELECT id FROM recipes WHERE id = ?").get(recipeId);
+    const recipe = db.prepare("SELECT id FROM recipes WHERE id = ? AND user_id IS ?").get(recipeId, userIdOf(req));
     if (!recipe) return res.status(404).json({ error: "Ricetta non trovata" });
 
     const updateRecipe = db.prepare("UPDATE recipes SET name = ?, servings = ? WHERE id = ?");
@@ -174,7 +177,7 @@ router.put("/:id", (req, res) => {
 });
 
 router.delete("/:id", (req, res) => {
-    db.prepare("DELETE FROM recipes WHERE id = ?").run(req.params.id);
+    db.prepare("DELETE FROM recipes WHERE id = ? AND user_id IS ?").run(req.params.id, userIdOf(req));
     res.status(204).end();
 });
 
