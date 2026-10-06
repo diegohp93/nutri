@@ -127,6 +127,11 @@ export default function App() {
   const totals = day?.totals;
   // stile MyFitnessPal: le calorie bruciate con l'esercizio si aggiungono all'obiettivo giornaliero
   const adjustedCalorieGoal = goals.calories > 0 ? goals.calories + (totals?.caloriesBurned ?? 0) : 0;
+  // i grammi target di P/C/G si scalano dello stesso fattore, così il rapporto tra macro resta invariato
+  const macroScaleFactor = goals.calories > 0 ? adjustedCalorieGoal / goals.calories : 1;
+  const adjustedProteinGoal = goals.protein * macroScaleFactor;
+  const adjustedCarbsGoal = goals.carbs * macroScaleFactor;
+  const adjustedFatGoal = goals.fat * macroScaleFactor;
 
 
   return (
@@ -226,52 +231,52 @@ export default function App() {
             )}
           </div>
           <div className="macro-row">
-            <div className={`macro-chip macro-protein ${isOver(totals.protein, goals.protein) ? "over" : ""}`}>
+            <div className={`macro-chip macro-protein ${isOver(totals.protein, adjustedProteinGoal) ? "over" : ""}`}>
               <span className="macro-dot" aria-hidden="true" />
               <span>Proteine</span>
               <strong>
                 {Math.round(totals.protein)}
-                {goals.protein > 0 ? ` / ${goals.protein}` : ""} g
+                {adjustedProteinGoal > 0 ? ` / ${Math.round(adjustedProteinGoal)}` : ""} g
               </strong>
-              {goals.protein > 0 && (
+              {adjustedProteinGoal > 0 && (
                 <div className="macro-progress">
-                  <div className="macro-progress-fill" style={{ width: `${pct(totals.protein, goals.protein)}%` }} />
+                  <div className="macro-progress-fill" style={{ width: `${pct(totals.protein, adjustedProteinGoal)}%` }} />
                 </div>
               )}
-              {isOver(totals.protein, goals.protein) && (
-                <span className="macro-excess">+{Math.round(totals.protein - goals.protein)} g</span>
+              {isOver(totals.protein, adjustedProteinGoal) && (
+                <span className="macro-excess">+{Math.round(totals.protein - adjustedProteinGoal)} g</span>
               )}
             </div>
-            <div className={`macro-chip macro-carbs ${isOver(totals.carbs, goals.carbs) ? "over" : ""}`}>
+            <div className={`macro-chip macro-carbs ${isOver(totals.carbs, adjustedCarbsGoal) ? "over" : ""}`}>
               <span className="macro-dot" aria-hidden="true" />
               <span>Carboidrati</span>
               <strong>
                 {Math.round(totals.carbs)}
-                {goals.carbs > 0 ? ` / ${goals.carbs}` : ""} g
+                {adjustedCarbsGoal > 0 ? ` / ${Math.round(adjustedCarbsGoal)}` : ""} g
               </strong>
-              {goals.carbs > 0 && (
+              {adjustedCarbsGoal > 0 && (
                 <div className="macro-progress">
-                  <div className="macro-progress-fill" style={{ width: `${pct(totals.carbs, goals.carbs)}%` }} />
+                  <div className="macro-progress-fill" style={{ width: `${pct(totals.carbs, adjustedCarbsGoal)}%` }} />
                 </div>
               )}
-              {isOver(totals.carbs, goals.carbs) && (
-                <span className="macro-excess">+{Math.round(totals.carbs - goals.carbs)} g</span>
+              {isOver(totals.carbs, adjustedCarbsGoal) && (
+                <span className="macro-excess">+{Math.round(totals.carbs - adjustedCarbsGoal)} g</span>
               )}
             </div>
-            <div className={`macro-chip macro-fat ${isOver(totals.fat, goals.fat) ? "over" : ""}`}>
+            <div className={`macro-chip macro-fat ${isOver(totals.fat, adjustedFatGoal) ? "over" : ""}`}>
               <span className="macro-dot" aria-hidden="true" />
               <span>Grassi</span>
               <strong>
                 {Math.round(totals.fat)}
-                {goals.fat > 0 ? ` / ${goals.fat}` : ""} g
+                {adjustedFatGoal > 0 ? ` / ${Math.round(adjustedFatGoal)}` : ""} g
               </strong>
-              {goals.fat > 0 && (
+              {adjustedFatGoal > 0 && (
                 <div className="macro-progress">
-                  <div className="macro-progress-fill" style={{ width: `${pct(totals.fat, goals.fat)}%` }} />
+                  <div className="macro-progress-fill" style={{ width: `${pct(totals.fat, adjustedFatGoal)}%` }} />
                 </div>
               )}
-              {isOver(totals.fat, goals.fat) && (
-                <span className="macro-excess">+{Math.round(totals.fat - goals.fat)} g</span>
+              {isOver(totals.fat, adjustedFatGoal) && (
+                <span className="macro-excess">+{Math.round(totals.fat - adjustedFatGoal)} g</span>
               )}
             </div>
           </div>
