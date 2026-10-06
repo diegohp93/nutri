@@ -119,13 +119,13 @@ export default function SettingsModal({ onClose }: Props) {
                     type="button"
                     role="switch"
                     aria-checked={effectiveMacroUnit === "pct"}
-                    className={`macro-unit-switch ${effectiveMacroUnit === "pct" ? "is-pct" : ""}`}
+                    className={`macro-unit-switch ${effectiveMacroUnit === "g" ? "is-g" : ""}`}
                     onClick={() => setMacroUnit(effectiveMacroUnit === "g" ? "pct" : "g")}
                     disabled={calorieGoal <= 0}
                     title={calorieGoal <= 0 ? "Imposta prima le calorie per usare le percentuali" : undefined}
                 >
-                    <span className="macro-unit-switch-label">g</span>
-                    <span className="macro-unit-switch-label">%</span>
+                    <span className={`macro-unit-switch-label ${effectiveMacroUnit === "pct" ? "is-active" : ""}`}>%</span>
+                    <span className={`macro-unit-switch-label ${effectiveMacroUnit === "g" ? "is-active" : ""}`}>g</span>
                     <span className="macro-unit-switch-thumb" />
                 </button>
             </div>
