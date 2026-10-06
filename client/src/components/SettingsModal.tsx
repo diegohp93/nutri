@@ -113,22 +113,20 @@ export default function SettingsModal({ onClose }: Props) {
                 />
             </label>
 
-            <div className="unit-toggle">
+            <div className="macro-unit-row">
+                <span className="muted small">Obiettivi macro in:</span>
                 <button
                     type="button"
-                    className={`btn ${effectiveMacroUnit === "g" ? "primary" : "secondary"}`}
-                    onClick={() => setMacroUnit("g")}
-                >
-                    Grammi
-                </button>
-                <button
-                    type="button"
-                    className={`btn ${effectiveMacroUnit === "pct" ? "primary" : "secondary"}`}
-                    onClick={() => setMacroUnit("pct")}
+                    role="switch"
+                    aria-checked={effectiveMacroUnit === "pct"}
+                    className={`macro-unit-switch ${effectiveMacroUnit === "pct" ? "is-pct" : ""}`}
+                    onClick={() => setMacroUnit(effectiveMacroUnit === "g" ? "pct" : "g")}
                     disabled={calorieGoal <= 0}
                     title={calorieGoal <= 0 ? "Imposta prima le calorie per usare le percentuali" : undefined}
                 >
-                    Percentuali
+                    <span className="macro-unit-switch-label">g</span>
+                    <span className="macro-unit-switch-label">%</span>
+                    <span className="macro-unit-switch-thumb" />
                 </button>
             </div>
 
@@ -136,75 +134,87 @@ export default function SettingsModal({ onClose }: Props) {
                 <>
                     <label className="field">
                         Proteine (g)
-                        <input
-                            type="number"
-                            min={0}
-                            value={proteinGoal}
-                            onChange={(e) => setProteinGoal(Number(e.target.value))}
-                            onBlur={handleGoalBlur}
-                        />
-                        {calorieGoal > 0 && <span className="muted small">≈ {Math.round(gramsToPct(proteinGoal, 4))}%</span>}
+                        <div className="field-input-wrap">
+                            <input
+                                type="number"
+                                min={0}
+                                value={proteinGoal}
+                                onChange={(e) => setProteinGoal(Number(e.target.value))}
+                                onBlur={handleGoalBlur}
+                            />
+                            {calorieGoal > 0 && <span className="field-input-hint">≈ {Math.round(gramsToPct(proteinGoal, 4))}%</span>}
+                        </div>
                     </label>
                     <label className="field">
                         Carboidrati (g)
-                        <input
-                            type="number"
-                            min={0}
-                            value={carbsGoal}
-                            onChange={(e) => setCarbsGoal(Number(e.target.value))}
-                            onBlur={handleGoalBlur}
-                        />
-                        {calorieGoal > 0 && <span className="muted small">≈ {Math.round(gramsToPct(carbsGoal, 4))}%</span>}
+                        <div className="field-input-wrap">
+                            <input
+                                type="number"
+                                min={0}
+                                value={carbsGoal}
+                                onChange={(e) => setCarbsGoal(Number(e.target.value))}
+                                onBlur={handleGoalBlur}
+                            />
+                            {calorieGoal > 0 && <span className="field-input-hint">≈ {Math.round(gramsToPct(carbsGoal, 4))}%</span>}
+                        </div>
                     </label>
                     <label className="field">
                         Grassi (g)
-                        <input
-                            type="number"
-                            min={0}
-                            value={fatGoal}
-                            onChange={(e) => setFatGoal(Number(e.target.value))}
-                            onBlur={handleGoalBlur}
-                        />
-                        {calorieGoal > 0 && <span className="muted small">≈ {Math.round(gramsToPct(fatGoal, 9))}%</span>}
+                        <div className="field-input-wrap">
+                            <input
+                                type="number"
+                                min={0}
+                                value={fatGoal}
+                                onChange={(e) => setFatGoal(Number(e.target.value))}
+                                onBlur={handleGoalBlur}
+                            />
+                            {calorieGoal > 0 && <span className="field-input-hint">≈ {Math.round(gramsToPct(fatGoal, 9))}%</span>}
+                        </div>
                     </label>
                 </>
             ) : (
                 <>
                     <label className="field">
                         Proteine (%)
-                        <input
-                            type="number"
-                            min={0}
-                            max={100}
-                            value={Math.round(gramsToPct(proteinGoal, 4))}
-                            onChange={(e) => setProteinGoal(Math.round(pctToGrams(Number(e.target.value), 4)))}
-                            onBlur={handleGoalBlur}
-                        />
-                        <span className="muted small">≈ {proteinGoal} g</span>
+                        <div className="field-input-wrap">
+                            <input
+                                type="number"
+                                min={0}
+                                max={100}
+                                value={Math.round(gramsToPct(proteinGoal, 4))}
+                                onChange={(e) => setProteinGoal(Math.round(pctToGrams(Number(e.target.value), 4)))}
+                                onBlur={handleGoalBlur}
+                            />
+                            <span className="field-input-hint">≈ {proteinGoal} g</span>
+                        </div>
                     </label>
                     <label className="field">
                         Carboidrati (%)
-                        <input
-                            type="number"
-                            min={0}
-                            max={100}
-                            value={Math.round(gramsToPct(carbsGoal, 4))}
-                            onChange={(e) => setCarbsGoal(Math.round(pctToGrams(Number(e.target.value), 4)))}
-                            onBlur={handleGoalBlur}
-                        />
-                        <span className="muted small">≈ {carbsGoal} g</span>
+                        <div className="field-input-wrap">
+                            <input
+                                type="number"
+                                min={0}
+                                max={100}
+                                value={Math.round(gramsToPct(carbsGoal, 4))}
+                                onChange={(e) => setCarbsGoal(Math.round(pctToGrams(Number(e.target.value), 4)))}
+                                onBlur={handleGoalBlur}
+                            />
+                            <span className="field-input-hint">≈ {carbsGoal} g</span>
+                        </div>
                     </label>
                     <label className="field">
                         Grassi (%)
-                        <input
-                            type="number"
-                            min={0}
-                            max={100}
-                            value={Math.round(gramsToPct(fatGoal, 9))}
-                            onChange={(e) => setFatGoal(Math.round(pctToGrams(Number(e.target.value), 9)))}
-                            onBlur={handleGoalBlur}
-                        />
-                        <span className="muted small">≈ {fatGoal} g</span>
+                        <div className="field-input-wrap">
+                            <input
+                                type="number"
+                                min={0}
+                                max={100}
+                                value={Math.round(gramsToPct(fatGoal, 9))}
+                                onChange={(e) => setFatGoal(Math.round(pctToGrams(Number(e.target.value), 9)))}
+                                onBlur={handleGoalBlur}
+                            />
+                            <span className="field-input-hint">≈ {fatGoal} g</span>
+                        </div>
                     </label>
                 </>
             )}

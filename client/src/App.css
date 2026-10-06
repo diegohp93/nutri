@@ -701,6 +701,26 @@ body {
   border-color: var(--primary);
 }
 
+.field-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.field-input-wrap input {
+  width: 100%;
+  padding-right: 64px;
+}
+
+.field-input-hint {
+  position: absolute;
+  right: 26px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
 .unit-toggle {
   display: flex;
   gap: 8px;
@@ -709,6 +729,56 @@ body {
 
 .unit-toggle .btn {
   flex: 1;
+}
+
+.macro-unit-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.macro-unit-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 56px;
+  height: 24px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--border);
+  padding: 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.macro-unit-switch:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.macro-unit-switch-label {
+  flex: 1;
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  z-index: 1;
+  color: var(--text);
+}
+
+.macro-unit-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: calc(50% - 2px);
+  height: calc(100% - 4px);
+  border-radius: 999px;
+  background: var(--primary);
+  transition: transform 0.2s ease;
+}
+
+.macro-unit-switch.is-pct .macro-unit-switch-thumb {
+  transform: translateX(100%);
 }
 
 .macro-preview {
