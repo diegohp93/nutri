@@ -52,6 +52,29 @@ router.post("/logout", (req, res) => {
     res.json({ ok: true });
 });
 
+// Cambio password: ognuno cambia solo la propria, serve conoscere quella attuale.
+router.post("/change-password", (req, res) => {
+    const caller = getSessionUser(bearerToken(req) ?? "");
+    if (!caller) {
+        res.status(401).json({ error: "Non autorizzato" });
+        return;
+    }
+    const { currentPassword, newPassword } = req.body ?? {};
+    if (!currentPassword || !newPassword) {
+        res.status(400).json({ error: "Password attuale e nuova password richieste" });
+        return;
+    }
+    const user = db.prepare("SELECT password_hash FROM users WHERE id = ?").get(caller.id) as
+        | { password_hash: string }
+        | undefined;
+    if (!user || !verifyPassword(currentPassword, user.password_hash)) {
+        res.status(401).json({ error: "Password attuale non corretta" });
+        return;
+    }
+    db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(hashPassword(newPassword), caller.id);
+    res.json({ ok: true });
+});
+
 // Crea altri utenti (es. account beta): richiede di essere già loggati come amministratore,
 // dato che /setup funziona solo finché il database è ancora vuoto.
 router.post("/users", (req, res) => {
