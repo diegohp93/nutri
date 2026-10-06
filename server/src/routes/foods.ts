@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { db } from "../db.js";
+import { userIdOf } from "../auth.js";
 
 const router = Router();
 
@@ -66,6 +67,7 @@ router.get("/history", (req, res) => {
     const q = String(req.query.q ?? "").trim();
     if (q.length < 2) return res.json({ products: [] });
 
+    const userId = userIdOf(req);
     const rows = db
         .prepare(`
                         SELECT d.name, d.brand, d.barcode, d.quantity_g, d.calories, d.protein, d.carbs, d.fat,
@@ -75,15 +77,18 @@ router.get("/history", (req, res) => {
                                 FROM diary_entries AS first_entry
                                 WHERE first_entry.name = d.name COLLATE NOCASE
                                     AND first_entry.brand IS d.brand
+                                    AND first_entry.user_id IS d.user_id
                                 ORDER BY first_entry.id
                                 LIMIT 1
                             ) AS first_quantity_g
                         FROM diary_entries AS d
                         WHERE d.name LIKE ? COLLATE NOCASE
+                            AND d.user_id IS ?
                             AND NOT EXISTS (
                                 SELECT 1 FROM hidden_food_history AS h
                                 WHERE h.name = d.name COLLATE NOCASE
                                     AND h.brand = COALESCE(d.brand, '') COLLATE NOCASE
+                                    AND h.user_id IS d.user_id
                             )
                         UNION ALL
                         SELECT ri.name, NULL AS brand, NULL AS barcode, ri.quantity_g,
@@ -94,15 +99,18 @@ router.get("/history", (req, res) => {
                             ri.id AS source_id,
                             ri.quantity_g AS first_quantity_g
                         FROM recipe_ingredients AS ri
+                        JOIN recipes AS r ON r.id = ri.recipe_id
                         WHERE ri.name LIKE ? COLLATE NOCASE
+                            AND r.user_id IS ?
                             AND NOT EXISTS (
                                 SELECT 1 FROM hidden_food_history AS h
                                 WHERE h.name = ri.name COLLATE NOCASE
                                     AND h.brand = ''
+                                    AND h.user_id IS r.user_id
                             )
                         ORDER BY source_id DESC
                 `)
-        .all(`%${q}%`, `%${q}%`) as {
+        .all(`%${q}%`, userId, `%${q}%`, userId) as {
             name: string;
             brand: string | null;
             barcode: string | null;
@@ -158,7 +166,13 @@ router.delete("/history", (req, res) => {
     const brand = String(req.body?.brand ?? "").trim();
     if (!name) return res.status(400).json({ error: "Nome alimento obbligatorio" });
 
-    db.prepare("INSERT OR IGNORE INTO hidden_food_history (name, brand) VALUES (?, ?)").run(name, brand);
+    const userId = userIdOf(req);
+    const exists = db
+        .prepare("SELECT 1 FROM hidden_food_history WHERE user_id IS ? AND name = ? AND brand = ?")
+        .get(userId, name, brand);
+    if (!exists) {
+        db.prepare("INSERT INTO hidden_food_history (user_id, name, brand) VALUES (?, ?, ?)").run(userId, name, brand);
+    }
     res.status(204).end();
 });
 

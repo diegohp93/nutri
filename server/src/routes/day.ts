@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { db } from "../db.js";
+import { userIdOf } from "../auth.js";
 
 const router = Router();
 
@@ -8,12 +9,13 @@ router.get("/", (req, res) => {
     const date = String(req.query.date ?? "");
     if (!date) return res.status(400).json({ error: "Parametro 'date' obbligatorio (YYYY-MM-DD)" });
 
+    const userId = userIdOf(req);
     const foodRows = db
-        .prepare("SELECT * FROM diary_entries WHERE date = ? ORDER BY id")
-        .all(date) as any[];
+        .prepare("SELECT * FROM diary_entries WHERE date = ? AND user_id IS ? ORDER BY id")
+        .all(date, userId) as any[];
     const exerciseRows = db
-        .prepare("SELECT * FROM exercise_entries WHERE date = ? ORDER BY id")
-        .all(date) as any[];
+        .prepare("SELECT * FROM exercise_entries WHERE date = ? AND user_id IS ? ORDER BY id")
+        .all(date, userId) as any[];
 
     const meals: Record<string, any[]> = { breakfast: [], lunch: [], dinner: [], snack: [] };
     for (const row of foodRows) {

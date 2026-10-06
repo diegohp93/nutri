@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db } from "../db.js";
 import { MET_BY_CATEGORY, estimateCalories } from "../met.js";
+import { userIdOf } from "../auth.js";
 
 const router = Router();
 const WGER_BASE = "https://wger.de/api/v2";
@@ -102,7 +103,7 @@ router.post("/log", (req, res) => {
         return res.status(400).json({ error: "Campi obbligatori mancanti (date, name, durationMin)" });
     }
 
-    const weightRow = db.prepare("SELECT value FROM settings WHERE key = 'body_weight_kg'").get() as
+    const weightRow = db.prepare("SELECT value FROM settings WHERE key = 'body_weight_kg' AND user_id IS ?").get(userIdOf(req)) as
         | { value: string }
         | undefined;
     const weightKg = weightRow ? Number(weightRow.value) : 70;
@@ -114,8 +115,8 @@ router.post("/log", (req, res) => {
             : estimateCalories(finalMet, weightKg, Number(durationMin));
 
     const stmt = db.prepare(`
-    INSERT INTO exercise_entries (date, name, category, wger_id, met, duration_min, calories_burned)
-    VALUES (@date, @name, @category, @wgerId, @met, @durationMin, @caloriesBurned)
+    INSERT INTO exercise_entries (date, name, category, wger_id, met, duration_min, calories_burned, user_id)
+    VALUES (@date, @name, @category, @wgerId, @met, @durationMin, @caloriesBurned, @userId)
   `);
     const info = stmt.run({
         date,
@@ -125,6 +126,7 @@ router.post("/log", (req, res) => {
         met: finalMet,
         durationMin: Number(durationMin),
         caloriesBurned,
+        userId: userIdOf(req),
     });
 
     const created = db.prepare("SELECT * FROM exercise_entries WHERE id = ?").get(info.lastInsertRowid);
@@ -132,7 +134,7 @@ router.post("/log", (req, res) => {
 });
 
 router.delete("/log/:id", (req, res) => {
-    db.prepare("DELETE FROM exercise_entries WHERE id = ?").run(req.params.id);
+    db.prepare("DELETE FROM exercise_entries WHERE id = ? AND user_id IS ?").run(req.params.id, userIdOf(req));
     res.status(204).end();
 });
 

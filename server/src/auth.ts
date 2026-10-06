@@ -57,3 +57,9 @@ export function bearerToken(req: { header(name: string): string | undefined }): 
     const header = req.header("authorization") ?? "";
     return header.startsWith("Bearer ") ? header.slice(7) : null;
 }
+
+// In locale, finché non esiste nessun utente, le richieste non sono autenticate (vedi index.ts):
+// in quel caso i dati restano "globali" (user_id NULL), proprio come prima dell'introduzione del login.
+export function userIdOf(req: { user?: { id: number } }): number | null {
+    return req.user?.id ?? null;
+}

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db } from "../db.js";
+import { db, backfillOwnerData } from "../db.js";
 import { bearerToken, createSession, deleteSession, hashPassword, userCount, verifyPassword } from "../auth.js";
 
 const router = Router();
@@ -26,6 +26,7 @@ router.post("/setup", (req, res) => {
         return;
     }
     db.prepare("INSERT INTO users (username, password_hash) VALUES (?, ?)").run(username, hashPassword(password));
+    backfillOwnerData();
     res.json({ ok: true });
 });
 

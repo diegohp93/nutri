@@ -137,3 +137,16 @@ if (!hasColumn("hidden_food_history", "user_id")) {
   `);
 }
 
+// Step 2: finché esiste un solo utente, tutti i dati storici senza proprietario sono suoi
+// per definizione (sono stati creati prima che il login esistesse). Se in futuro esistono
+// più utenti, il backfill automatico si ferma per evitare assegnazioni ambigue.
+export function backfillOwnerData(): void {
+  const users = db.prepare("SELECT id FROM users").all() as { id: number }[];
+  if (users.length !== 1) return;
+  const ownerId = users[0].id;
+  for (const table of ["diary_entries", "exercise_entries", "recipes", "settings", "hidden_food_history"]) {
+    db.prepare(`UPDATE ${table} SET user_id = ? WHERE user_id IS NULL`).run(ownerId);
+  }
+}
+backfillOwnerData();
+
