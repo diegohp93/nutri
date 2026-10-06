@@ -74,4 +74,56 @@ router.post("/users", (req, res) => {
     res.json({ ok: true });
 });
 
+// Promuove un utente esistente ad amministratore (es. prima di cancellare l'admin attuale,
+// per non restare senza nessuno con questo ruolo).
+router.post("/users/:username/promote", (req, res) => {
+    const caller = getSessionUser(bearerToken(req) ?? "");
+    if (!caller?.isAdmin) {
+        res.status(401).json({ error: "Non autorizzato" });
+        return;
+    }
+    const info = db.prepare("UPDATE users SET is_admin = 1 WHERE username = ?").run(req.params.username);
+    if (info.changes === 0) {
+        res.status(404).json({ error: "Utente non trovato" });
+        return;
+    }
+    res.json({ ok: true });
+});
+
+// Cancella un utente e tutti i suoi dati. Non è possibile cancellare l'ultimo admin rimasto
+// (anche se coincide con chi sta chiamando), per non restare senza nessuno che possa gestire gli account.
+router.delete("/users/:username", (req, res) => {
+    const caller = getSessionUser(bearerToken(req) ?? "");
+    if (!caller?.isAdmin) {
+        res.status(401).json({ error: "Non autorizzato" });
+        return;
+    }
+    const target = db.prepare("SELECT id, is_admin FROM users WHERE username = ?").get(req.params.username) as
+        | { id: number; is_admin: number }
+        | undefined;
+    if (!target) {
+        res.status(404).json({ error: "Utente non trovato" });
+        return;
+    }
+    if (target.is_admin) {
+        const adminCount = (db.prepare("SELECT COUNT(*) AS c FROM users WHERE is_admin = 1").get() as { c: number }).c;
+        if (adminCount <= 1) {
+            res.status(409).json({ error: "Non puoi cancellare l'unico amministratore rimasto" });
+            return;
+        }
+    }
+    db.exec("BEGIN");
+    try {
+        for (const table of ["diary_entries", "exercise_entries", "recipes", "settings", "hidden_food_history"]) {
+            db.prepare(`DELETE FROM ${table} WHERE user_id = ?`).run(target.id);
+        }
+        db.prepare("DELETE FROM users WHERE id = ?").run(target.id);
+        db.exec("COMMIT");
+    } catch (err) {
+        db.exec("ROLLBACK");
+        throw err;
+    }
+    res.json({ ok: true });
+});
+
 export default router;
