@@ -149,4 +149,27 @@ router.delete("/users/:username", (req, res) => {
     res.json({ ok: true });
 });
 
+// Reimposta la password di un altro utente (es. l'ha dimenticata): solo admin, non serve
+// conoscere quella vecchia. Da non confondere con /change-password, che è self-service.
+router.post("/users/:username/reset-password", (req, res) => {
+    const caller = getSessionUser(bearerToken(req) ?? "");
+    if (!caller?.isAdmin) {
+        res.status(401).json({ error: "Non autorizzato" });
+        return;
+    }
+    const { newPassword } = req.body ?? {};
+    if (!newPassword) {
+        res.status(400).json({ error: "Nuova password richiesta" });
+        return;
+    }
+    const info = db
+        .prepare("UPDATE users SET password_hash = ? WHERE username = ?")
+        .run(hashPassword(newPassword), req.params.username);
+    if (info.changes === 0) {
+        res.status(404).json({ error: "Utente non trovato" });
+        return;
+    }
+    res.json({ ok: true });
+});
+
 export default router;
