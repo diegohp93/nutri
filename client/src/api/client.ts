@@ -81,6 +81,17 @@ export async function logout(): Promise<void> {
     localStorage.removeItem(USERNAME_KEY);
 }
 
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    const res = await doFetch("/auth/change-password", {
+        method: "POST",
+        body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Impossibile cambiare la password");
+    }
+}
+
 export function getDay(date: string): Promise<DayResponse> {
     return request(`/day?date=${date}`);
 }
