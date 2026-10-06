@@ -243,9 +243,7 @@ export default function SettingsModal({ onClose }: Props) {
             )}
 
             {macroMismatch && (
-                <p className="error small">
-                    Le percentuali sommano a {macroPctSum}% invece di 100%. Correggi i valori prima di salvare.
-                </p>
+                <p className="error small">Valore percentuale incorretto. Correggi prima di salvare.</p>
             )}
 
             <div className="modal-actions">
