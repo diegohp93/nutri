@@ -55,6 +55,25 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     return res.json() as Promise<T>;
 }
 
+export async function login(username: string, password: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+    });
+    if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Credenziali non valide");
+    }
+    const { token } = (await res.json()) as { token: string };
+    setToken(token);
+}
+
+export async function logout(): Promise<void> {
+    await doFetch("/auth/logout", { method: "POST" }).catch(() => { });
+    setToken(null);
+}
+
 export function getDay(date: string): Promise<DayResponse> {
     return request(`/day?date=${date}`);
 }

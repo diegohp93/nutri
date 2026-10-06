@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Modal from "./Modal";
-import { getSettings, updateSettings } from "../api/client";
+import { getSettings, updateSettings, logout } from "../api/client";
 
 interface Props {
     onClose: () => void;
@@ -91,6 +91,11 @@ export default function SettingsModal({ onClose }: Props) {
         } finally {
             setSaving(false);
         }
+    }
+
+    async function handleLogout() {
+        await logout();
+        window.location.reload();
     }
 
     return (
@@ -247,6 +252,7 @@ export default function SettingsModal({ onClose }: Props) {
             )}
 
             <div className="modal-actions">
+                <button className="btn secondary" onClick={handleLogout}>Esci</button>
                 <button className="btn secondary" onClick={onClose}>Annulla</button>
                 <button className="btn primary" onClick={handleSave} disabled={saving || macroMismatch || calorieTooHigh}>
                     {saving ? "Salvo…" : "Salva"}
