@@ -118,6 +118,20 @@ Se devi ripristinare un backup o sostituire il database: su Google Drive, apri i
 `DRIVE_FILE_ID` non cambia). Poi riavvia il servizio su Render (Manual Deploy, oppure
 aspetta che si riaddormenti e risvegli da solo) perché il download avviene solo all'avvio.
 
+## Ambiente di test
+
+Per provare nuove feature senza rischiare i dati di produzione, esiste un secondo Web
+Service Render (free), collegato al branch `test` di questo repo:
+
+- **URL:** https://nutri-test.onrender.com
+- **Database:** file separato su Google Drive (stesse env vars di prod tranne
+  `DRIVE_FILE_ID`, che punta a una copia indipendente di `nutri.db`).
+
+Flusso di lavoro consigliato:
+
+1. Sviluppa (direttamente su `test`, o su un branch feature staccato da `test`).
+2. Push su `test` → auto-deploy su `nutri-test.onrender.com`, verifica che tutto funzioni.
+3. Se ok, merge `test` → `main` → auto-deploy su produzione.
 
 ## Note tecniche
 
