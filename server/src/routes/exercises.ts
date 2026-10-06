@@ -54,7 +54,8 @@ async function buildExerciseCache(): Promise<void> {
         const category = (categoryId !== undefined && categoryNameById.get(categoryId)) || "Default";
         return {
             wgerId: exerciseId,
-            name: itName || enName,
+            // nome inglese come standard de facto: le traduzioni IT di wger sono community e non revisionate
+            name: enName,
             category,
             met: MET_BY_CATEGORY[category] ?? MET_BY_CATEGORY.Default,
             searchText: `${enName} ${itName ?? ""}`.toLowerCase(),
