@@ -736,6 +736,13 @@ body {
   right: 6px;
   display: flex;
   flex-direction: column;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.field-input-wrap:hover .field-input-stepper,
+.field-input-wrap:focus-within .field-input-stepper {
+  opacity: 1;
 }
 
 .field-input-stepper button {
