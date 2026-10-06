@@ -36,6 +36,21 @@ async function main() {
 
     app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
+    if (isDriveSyncEnabled()) {
+        // Dopo ogni richiesta che modifica dati, ricarica il database su Drive: necessario
+        // perché il filesystem locale viene azzerato ad ogni riavvio su hosting free tier.
+        // Montato PRIMA di qualunque router (auth incluso): una volta che una route risponde,
+        // i middleware registrati dopo di essa non vengono più eseguiti per quella richiesta.
+        app.use("/api", (req, res, next) => {
+            if (["POST", "PUT", "DELETE", "PATCH"].includes(req.method)) {
+                res.on("finish", () => {
+                    void scheduleUpload(dbPath);
+                });
+            }
+            next();
+        });
+    }
+
     app.use("/api/auth", authRouter);
 
     // Richiede login solo se esiste già almeno un utente: finché nessuno è stato creato
@@ -53,19 +68,6 @@ async function main() {
         req.user = user;
         next();
     });
-
-    if (isDriveSyncEnabled()) {
-        // Dopo ogni richiesta che modifica dati, ricarica il database su Drive: necessario
-        // perché il filesystem locale viene azzerato ad ogni riavvio su hosting free tier.
-        app.use("/api", (req, res, next) => {
-            if (["POST", "PUT", "DELETE", "PATCH"].includes(req.method)) {
-                res.on("finish", () => {
-                    void scheduleUpload(dbPath);
-                });
-            }
-            next();
-        });
-    }
 
     app.use("/api/foods", foodsRouter);
     app.use("/api/exercises", exercisesRouter);
