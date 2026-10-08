@@ -63,7 +63,7 @@ export default function MealSection({ date, meal, entries, onChanged }: Props) {
                                         type="number"
                                         min={1}
                                         autoFocus
-                                        value={editQuantity}
+                                        value={editQuantity || ""}
                                         onChange={(ev) => setEditQuantity(Number(ev.target.value))}
                                     />
                                     <span className="muted small">g</span>

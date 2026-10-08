@@ -235,7 +235,7 @@ export default function FoodSearchModal({ date, meal, onClose, onAdded }: Props)
                     <input
                         type="number"
                         min={1}
-                        value={manualQuantity}
+                        value={manualQuantity || ""}
                         onChange={(e) => setManualQuantity(Number(e.target.value))}
                     />
                 </label>
@@ -290,7 +290,7 @@ export default function FoodSearchModal({ date, meal, onClose, onAdded }: Props)
                             type="number"
                             min={0.25}
                             step={0.25}
-                            value={servings}
+                            value={servings || ""}
                             onChange={(e) => setServings(Number(e.target.value))}
                         />
                     </label>
@@ -300,7 +300,7 @@ export default function FoodSearchModal({ date, meal, onClose, onAdded }: Props)
                         <input
                             type="number"
                             min={1}
-                            value={quantity}
+                            value={quantity || ""}
                             onChange={(e) => setQuantity(Number(e.target.value))}
                         />
                     </label>

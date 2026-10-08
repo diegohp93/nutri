@@ -89,12 +89,12 @@ export default function RecipeSearchModal({ date, meal, onClose, onAdded }: Prop
                 {unit === "serving" ? (
                     <label className="field">
                         Numero di porzioni
-                        <input type="number" min={0.25} step={0.25} value={servings} onChange={(e) => setServings(Number(e.target.value))} />
+                        <input type="number" min={0.25} step={0.25} value={servings || ""} onChange={(e) => setServings(Number(e.target.value))} />
                     </label>
                 ) : (
                     <label className="field">
                         Quantità (g)
-                        <input type="number" min={1} value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} />
+                        <input type="number" min={1} value={quantity || ""} onChange={(e) => setQuantity(Number(e.target.value))} />
                     </label>
                 )}
                 <p className="muted small">
