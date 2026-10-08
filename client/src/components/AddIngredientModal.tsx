@@ -1,8 +1,11 @@
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import Modal from "./Modal";
 import { searchFoods, searchFoodHistory, removeFoodHistory, getFoodByBarcode } from "../api/client";
 import { isBarcodeQuery, mergeFoodResults } from "../searchHelpers";
 import type { FoodProduct, IngredientInput } from "../types";
+
+// Caricato solo quando l'utente apre lo scanner: la libreria di decodifica pesa ~500kb.
+const BarcodeScannerModal = lazy(() => import("./BarcodeScannerModal"));
 
 interface Props {
     onClose: () => void;
@@ -20,6 +23,7 @@ export default function AddIngredientModal({ onClose, onAdd }: Props) {
     const [unit, setUnit] = useState<"g" | "serving">("g");
     const [quantity, setQuantity] = useState(100);
     const [servings, setServings] = useState(1);
+    const [scannerOpen, setScannerOpen] = useState(false);
 
     const [manualMode, setManualMode] = useState(false);
     const [manualName, setManualName] = useState("");
@@ -127,6 +131,20 @@ export default function AddIngredientModal({ onClose, onAdd }: Props) {
         }
     }
 
+    if (scannerOpen) {
+        return (
+            <Suspense fallback={<Modal title="Inquadra il codice a barre" onClose={() => setScannerOpen(false)}><p className="muted">Caricamento…</p></Modal>}>
+                <BarcodeScannerModal
+                    onClose={() => setScannerOpen(false)}
+                    onDetected={(code) => {
+                        setScannerOpen(false);
+                        setQuery(code);
+                    }}
+                />
+            </Suspense>
+        );
+    }
+
     if (manualMode) {
         return (
             <Modal title="Aggiungi ingrediente manualmente" onClose={onClose}>
@@ -173,7 +191,7 @@ export default function AddIngredientModal({ onClose, onAdd }: Props) {
                 </label>
                 <label className="field">
                     Quantità di 1 porzione (g)
-                    <input type="number" min={1} value={manualQuantity} onChange={(e) => setManualQuantity(Number(e.target.value))} />
+                    <input type="number" min={1} value={manualQuantity || ""} onChange={(e) => setManualQuantity(Number(e.target.value))} />
                 </label>
                 <div className="macro-preview">
                     <div><strong>{Math.round(Number(manualKcal) || 0)}</strong> kcal</div>
@@ -225,14 +243,14 @@ export default function AddIngredientModal({ onClose, onAdd }: Props) {
                             type="number"
                             min={0.25}
                             step={0.25}
-                            value={servings}
+                            value={servings || ""}
                             onChange={(e) => setServings(Number(e.target.value))}
                         />
                     </label>
                 ) : (
                     <label className="field">
                         Quantità (g)
-                        <input type="number" min={1} value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} />
+                        <input type="number" min={1} value={quantity || ""} onChange={(e) => setQuantity(Number(e.target.value))} />
                     </label>
                 )}
                 <div className="macro-preview">
@@ -251,13 +269,24 @@ export default function AddIngredientModal({ onClose, onAdd }: Props) {
 
     return (
         <Modal title="Cerca ingrediente" onClose={onClose}>
-            <input
-                className="search-input"
-                autoFocus
-                placeholder="Es. petto di pollo, lattuga…"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-            />
+            <div className="search-row">
+                <input
+                    className="search-input"
+                    autoFocus
+                    placeholder="Es. petto di pollo, lattuga…"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                />
+                <button
+                    type="button"
+                    className="icon-btn scan-btn"
+                    title="Scansiona codice a barre"
+                    aria-label="Scansiona codice a barre"
+                    onClick={() => setScannerOpen(true)}
+                >
+                    📷
+                </button>
+            </div>
             {loading && <p className="muted">Ricerca in corso…</p>}
             {error && <p className="error">{error}</p>}
             <ul className="result-list">

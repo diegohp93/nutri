@@ -68,7 +68,7 @@ export default function RecipeBuilderModal({ onClose, onCreated, recipe }: Props
             </label>
             <label className="field">
                 Numero di porzioni che produce
-                <input type="number" min={1} step={1} value={servings} onChange={(e) => setServings(Number(e.target.value))} />
+                <input type="number" min={1} step={1} value={servings || ""} onChange={(e) => setServings(Number(e.target.value))} />
             </label>
 
             <p className="muted small">Ingredienti ({ingredients.length})</p>
@@ -84,7 +84,7 @@ export default function RecipeBuilderModal({ onClose, onCreated, recipe }: Props
                                 type="number"
                                 min={0.1}
                                 step={0.1}
-                                value={ing.quantityG}
+                                value={ing.quantityG || ""}
                                 onChange={(e) => updateIngredientQuantity(i, Number(e.target.value))}
                                 aria-label={`Quantità di ${ing.name} in grammi`}
                             />
